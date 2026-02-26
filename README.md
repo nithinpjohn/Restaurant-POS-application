@@ -2,6 +2,9 @@
 
 A modern, elegant Point of Sale (POS) system built for restaurants. Streamline your operations with intuitive table management, order tracking, menu administration, and comprehensive reporting.
 
+**Live link:**
+**[Login](https://v0-restaurant-pos-project.vercel.app/login/)** | **[Dashboard](https://v0-restaurant-pos-project.vercel.app/)**
+
 **Built by:** [Nithin](https://github.com) | **Company:** [Evalogical](https://evalogical.com)
 
 ---

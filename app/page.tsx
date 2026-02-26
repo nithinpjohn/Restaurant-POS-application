@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { PosHeader } from "@/components/pos-header"
-import { PlusCircle, Utensils, CreditCard, FileText, ChevronRight, TrendingUp, TrendingDown } from "lucide-react"
+import { PlusCircle, Utensils, CreditCard, FileText, ChevronRight, TrendingUp, TrendingDown, Bell, Settings } from "lucide-react"
 
 const quickActions = [
   { href: "/new-order", icon: PlusCircle, label: "New Order", description: "Create a new customer order" },
@@ -44,7 +43,43 @@ const stats = [
 export default function Dashboard() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <PosHeader />
+      <header className="border-b border-border bg-card">
+        <div className="flex items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
+              K
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="font-bold text-lg text-foreground">Kans Resto</h1>
+              <p className="text-xs text-muted-foreground">POS System</p>
+            </div>
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-8">
+            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Dashboard
+            </Link>
+            <Link href="/orders" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Orders
+            </Link>
+            <Link href="/menu" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Menu
+            </Link>
+            <Link href="/reports" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Reports
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-4">
+            <button className="p-2 hover:bg-secondary rounded-lg transition-colors">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+            </button>
+            <button className="p-2 hover:bg-secondary rounded-lg transition-colors">
+              <Settings className="h-5 w-5 text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+      </header>
 
       <main className="flex-1 p-6 space-y-6">
         {/* Quick Actions */}

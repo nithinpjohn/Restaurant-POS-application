@@ -178,7 +178,7 @@ This is a **front-end demo with a local-first design**, not a production system 
 3. Run `npx tsc --noEmit` and commit your changes
 4. Push and open a Pull Request
 
-Please read [`CLAUDE.md`](CLAUDE.md) for the project's commit rules.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, code style and the PR checklist. New here? Start with the [`good first issue`](https://github.com/nithinpjohn/Restaurant-POS-application/labels/good%20first%20issue) label.
 
 ---
 

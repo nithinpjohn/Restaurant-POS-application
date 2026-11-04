@@ -12,7 +12,7 @@
 
 [**Live demo: Login**](https://v0-restaurant-pos-project.vercel.app/login/) · [**Dashboard**](https://v0-restaurant-pos-project.vercel.app/) · [Report a bug](https://github.com/nithinpjohn/Restaurant-POS-application/issues) · [Sponsor](#-sponsors--partners)
 
-<img src="docs/screenshots/new-order.png" alt="Kans Resto new order screen with a cart, modifiers and pinned checkout" width="900" />
+<img src="docs/screenshots/new-order.webp" alt="Kans Resto new order screen with a cart, modifiers and pinned checkout" width="900" />
 
 </div>
 
@@ -22,11 +22,11 @@
 
 | New order, modifiers and pinned checkout | Order placed, synced toast |
 |---|---|
-| ![New order](docs/screenshots/new-order.png) | ![Order placed](docs/screenshots/order-placed.png) |
+| ![New order](docs/screenshots/new-order.webp) | ![Order placed](docs/screenshots/order-placed.webp) |
 
 | Kitchen display with timers and held courses | Reports and analytics |
 |---|---|
-| ![Kitchen display](docs/screenshots/kitchen-display.png) | ![Reports](docs/screenshots/reports.png) |
+| ![Kitchen display](docs/screenshots/kitchen-display.webp) | ![Reports](docs/screenshots/reports.webp) |
 
 ---
 

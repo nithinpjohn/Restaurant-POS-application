@@ -6,7 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { IconMinus, IconPlus, IconTrash, IconInfoCircle, IconNote, IconPlayerPause, IconPlayerPlay, IconX } from "@tabler/icons-react"
+import { IconMinus, IconPlus, IconTrash, IconInfoCircle, IconNote, IconPlayerPause, IconPlayerPlay, IconX, IconChevronDown, IconChevronUp, IconLayoutSidebarRightCollapse, IconLayoutSidebarRightExpand } from "@tabler/icons-react"
 import { toast as sonner } from "sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { COUPONS, discountFor, type Coupon } from "@/lib/coupons"
@@ -212,6 +212,32 @@ export default function NewOrderPage() {
   // Held (parked) orders, kept in this browser.
   const [held, setHeld] = useState<HeldOrder[]>([])
   const [heldOpen, setHeldOpen] = useState(false)
+  // Order panel: collapsible, resizable by dragging its left edge; size is remembered per browser.
+  const [panelOpen, setPanelOpen] = useState(true)
+  const [panelWidth, setPanelWidth] = useState(380)
+  const [panelLoaded, setPanelLoaded] = useState(false)
+  const [guestOpen, setGuestOpen] = useState(false)
+  const [summaryOpen, setSummaryOpen] = useState(false)
+  useEffect(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem("kans-resto-order-panel") ?? "null")
+      if (p) { setPanelOpen(p.open !== false); if (typeof p.width === "number") setPanelWidth(Math.min(560, Math.max(320, p.width))) }
+    } catch {}
+    setPanelLoaded(true)
+  }, [])
+  useEffect(() => {
+    if (!panelLoaded) return
+    try { localStorage.setItem("kans-resto-order-panel", JSON.stringify({ open: panelOpen, width: panelWidth })) } catch {}
+  }, [panelOpen, panelWidth, panelLoaded])
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startW = panelWidth
+    const move = (ev: PointerEvent) => setPanelWidth(Math.min(560, Math.max(320, startW + startX - ev.clientX)))
+    const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up) }
+    window.addEventListener("pointermove", move)
+    window.addEventListener("pointerup", up)
+  }
   const [heldReady, setHeldReady] = useState(false)
 
   useEffect(() => {
@@ -309,10 +335,10 @@ export default function NewOrderPage() {
   const pad = (n: number) => String(n).padStart(2, "0")
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">
       <PosHeader />
 
-      <div className="flex flex-1">
+      <div className="flex min-h-0 flex-1">
         {/* Left: Menu Content */}
         <main className="flex-1 overflow-y-auto p-6">
           <PageSearch value={searchTerm} onChange={setSearchTerm} placeholder="Find food or beverages" className="mb-6" />
@@ -447,13 +473,30 @@ export default function NewOrderPage() {
         </main>
 
         {/* Right Sidebar: Order Panel */}
-        <aside className="w-[360px] border-l border-border bg-card flex flex-col shrink-0 hidden lg:flex">
+        <aside style={{ width: panelOpen ? panelWidth : 56 }} className="relative hidden min-h-0 shrink-0 flex-col overflow-hidden border-l border-border bg-card lg:flex">
+          {!panelOpen ? (
+            <button aria-label="Expand order panel" onClick={() => setPanelOpen(true)} className="flex h-full w-full flex-col items-center gap-3 pt-4 text-muted-foreground hover:bg-secondary">
+              <IconLayoutSidebarRightExpand className="h-5 w-5" />
+              {cart.length > 0 && <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">{cart.reduce((n, c) => n + c.quantity, 0)}</span>}
+              <span className="text-xs font-medium [writing-mode:vertical-rl]">Current order</span>
+            </button>
+          ) : (
+          <>
+          <div role="separator" aria-orientation="vertical" aria-label="Resize order panel" onPointerDown={startResize} className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize hover:bg-primary/30" />
           {/* Customer Information */}
-          <div className="p-5 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground">Customer Information</h3>
-              <IconInfoCircle className="h-4 w-4 text-muted-foreground" />
+          <div className="shrink-0 border-b border-border">
+            <div className="flex items-center gap-1 px-5 py-3">
+              <button type="button" aria-expanded={guestOpen} onClick={() => { setGuestOpen((v) => !v); setSummaryOpen(false) }} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                <IconInfoCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-foreground">Guest details</span>
+                  <span className="block truncate text-xs text-muted-foreground">{customerName || "Guest"} · {personCount} {personCount === 1 ? "person" : "people"}{guestAllergies.length ? ` · ${guestAllergies.length} allerg${guestAllergies.length === 1 ? "y" : "ies"}` : ""}</span>
+                </span>
+                {guestOpen ? <IconChevronUp className="h-4 w-4 text-muted-foreground" /> : <IconChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              <button type="button" aria-label="Collapse order panel" onClick={() => setPanelOpen(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary"><IconLayoutSidebarRightCollapse className="h-4 w-4" /></button>
             </div>
+            {guestOpen && (<div className="max-h-[35vh] overflow-y-auto px-5 pb-4">
             <div className="space-y-3">
               <div>
                 <Label className="text-xs text-muted-foreground mb-1 block">Customer name</Label>
@@ -483,9 +526,8 @@ export default function NewOrderPage() {
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="px-5 pb-3">
+          <div className="mt-4">
             <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <IconAlertTriangle className="h-3.5 w-3.5 text-amber-600" /> Guest allergies
             </p>
@@ -503,9 +545,11 @@ export default function NewOrderPage() {
               ))}
             </div>
           </div>
+          </div>)}
+          </div>
 
           {/* Current Order */}
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="min-h-0 flex-1 overflow-y-auto p-5">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-semibold text-foreground">Current Order</h3>
               <Button variant="outline" size="sm" className="h-7 gap-1 rounded-full text-xs" onClick={() => setHeldOpen(true)}>
@@ -601,8 +645,14 @@ export default function NewOrderPage() {
 
           {/* Payment Summary */}
           {cart.length > 0 && (
-            <div className="p-5 border-t border-border">
-              <h3 className="font-semibold text-foreground mb-3">Payment Summary</h3>
+            <div className="shrink-0 border-t border-border bg-card px-5 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+              <button type="button" aria-expanded={summaryOpen} onClick={() => { setSummaryOpen((v) => !v); setGuestOpen(false) }} className="mb-3 flex w-full items-center justify-between text-left">
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                  Payment summary {summaryOpen ? <IconChevronDown className="h-4 w-4 text-muted-foreground" /> : <IconChevronUp className="h-4 w-4 text-muted-foreground" />}
+                </span>
+                <span className="text-base font-semibold" style={{ color: "hsl(var(--success))" }}>${total.toFixed(2)}</span>
+              </button>
+              {summaryOpen && (<div className="mb-3 max-h-[35vh] overflow-y-auto">
               {coupon ? (
                 <div className="mb-3 flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
                   <span><strong>{coupon.code}</strong> · {coupon.label}{couponDiscount === 0 && " (minimum not met)"}</span>
@@ -658,7 +708,8 @@ export default function NewOrderPage() {
                   <Switch checked={fireAll} onCheckedChange={setFireAll} aria-label="Fire all courses now" />
                 </div>
               )}
-              <div className="mt-4 flex gap-2">
+              </div>)}
+              <div className="flex gap-2">
               <Button variant="outline" className="h-12 gap-1.5 rounded-xl" disabled={placing} onClick={holdOrder}>
                 <IconPlayerPause className="h-4 w-4" /> Hold
               </Button>
@@ -672,6 +723,8 @@ export default function NewOrderPage() {
               </Button>
               </div>
             </div>
+          )}
+          </>
           )}
         </aside>
       </div>

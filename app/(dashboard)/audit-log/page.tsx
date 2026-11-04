@@ -14,7 +14,7 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { useApproval } from "@/components/auth/approval-provider"
 import { cn } from "@/lib/utils"
 
-const categories: ("All" | AuditCategory)[] = ["All", "Menu", "Order", "Payment", "Table", "Allergen", "Inventory", "System"]
+const categories: ("All" | AuditCategory)[] = ["All", "Menu", "Order", "Payment", "Table", "Allergen", "Inventory", "Shift", "Safety", "System"]
 
 const csvCell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`
 

@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { IconUser, IconSettings, IconLogout, IconBell, IconCheck, IconHistory } from "@tabler/icons-react"
+import { IconUser, IconSettings, IconLogout, IconBell, IconCheck, IconClockHour4, IconHistory, IconTemperature } from "@tabler/icons-react"
 import { CommandSearch } from "@/components/layout/command-search"
 import { useAuth } from "@/components/auth/auth-provider"
 import { USERS, type Role } from "@/lib/permissions"
@@ -117,6 +117,18 @@ export function PosHeader() {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
+            <Link href={ROUTES.shift}>
+              <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer">
+                <IconClockHour4 className="h-4 w-4" />
+                <span>Shift &amp; Z-report</span>
+              </DropdownMenuItem>
+            </Link>
+            <Link href={ROUTES.foodSafety}>
+              <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer">
+                <IconTemperature className="h-4 w-4" />
+                <span>Food safety</span>
+              </DropdownMenuItem>
+            </Link>
             <Link href={ROUTES.auditLog}>
               <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer">
                 <IconHistory className="h-4 w-4" />

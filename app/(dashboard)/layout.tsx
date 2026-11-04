@@ -5,6 +5,8 @@ import { AuditProvider } from "@/components/audit/audit-provider"
 import { ApprovalProvider } from "@/components/auth/approval-provider"
 import { OrdersProvider } from "@/components/orders/orders-provider"
 import { InventoryProvider } from "@/components/inventory/inventory-provider"
+import { ShiftProvider } from "@/components/shift/shift-provider"
+import { FoodSafetyProvider } from "@/components/food-safety/food-safety-provider"
 import { SessionTimeout } from "@/components/auth/session-timeout"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -15,9 +17,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <ApprovalProvider>
             <InventoryProvider>
               <OrdersProvider>
-                {children}
-                <NotificationPanel />
-                <SessionTimeout />
+                <ShiftProvider>
+                  <FoodSafetyProvider>
+                    {children}
+                    <NotificationPanel />
+                    <SessionTimeout />
+                  </FoodSafetyProvider>
+                </ShiftProvider>
               </OrdersProvider>
             </InventoryProvider>
           </ApprovalProvider>

@@ -13,6 +13,8 @@ import { CashDrawerDialog } from "@/components/payment/cash-drawer-dialog"
 import { Receipt, type ReceiptData, type ReceiptPayment } from "@/components/payment/receipt"
 import { useAudit } from "@/components/audit/audit-provider"
 import { useNotifications } from "@/components/notifications/notifications-provider"
+import { OpenShiftDialog } from "@/components/shift/open-shift-dialog"
+import { useShift } from "@/components/shift/shift-provider"
 import { useOrders } from "@/components/orders/orders-provider"
 import Link from "next/link"
 import { ROUTES } from "@/lib/routes"
@@ -50,6 +52,7 @@ export default function PaymentPage() {
   const { notify } = useNotifications()
   const { log } = useAudit()
   const { orders, setOrders } = useOrders()
+  const { shift, recordSale } = useShift()
 
   const openOrders = orders.filter((o) => !o.paid && !["Completed", "Voided", "Refunded"].includes(o.status))
   const [pickedId, setOrderId] = useState("")
@@ -125,7 +128,7 @@ export default function PaymentPage() {
   const resetTender = () => { setCardNo(""); setExp(""); setCvv(""); setTendered("") }
 
   const pay = async () => {
-    if (!current || amountMismatch) return
+    if (!current || amountMismatch || !shift) return
     setError("")
     const digits = cardNo.replace(/\s/g, "")
     if (method === "card") {
@@ -155,6 +158,7 @@ export default function PaymentPage() {
       const earned = Math.floor(subtotal / 100)
       setPoints(points - loyalty + earned)
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, paid: true } : o)))
+      recordSale({ orderId: order.id, table: order.table, items, subtotal, taxLines, tip, loyalty, total: payable, payments: next.map((p) => ({ method: p.method, cents: p.cents })) })
       setPaidAt(Date.now())
       if (tip > 0 && poolTips) log({ category: "Payment", action: "Tip pooled", detail: `${fmt(tip)} shared by ${staff} staff (${fmt(Math.floor(tip / staff))} each)` })
       log({ category: "Payment", action: "Order paid in full", detail: `${order.id} · ${fmt(payable)}${loyalty ? ` + ${loyalty} pts redeemed` : ""}` })
@@ -392,9 +396,16 @@ export default function PaymentPage() {
 
                   {method === "mobile" && <p className="rounded-xl bg-secondary p-3 text-sm text-muted-foreground">Ask the guest to tap or scan on the terminal, then confirm below.</p>}
 
+                  {!shift && (
+                    <div className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
+                      <span>No shift is open. Open one to take payments.</span>
+                      <OpenShiftDialog size="sm" />
+                    </div>
+                  )}
+
                   {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
-                  <Button className="h-12 w-full gap-2 rounded-xl text-sm font-semibold" disabled={processing || !current || amountMismatch} onClick={pay}>
+                  <Button className="h-12 w-full gap-2 rounded-xl text-sm font-semibold" disabled={processing || !current || amountMismatch || !shift} onClick={pay}>
                     {processing ? <Spinner /> : <IconCreditCard className="h-4 w-4" />}
                     {processing ? "Processing…" : current ? `Pay ${fmt(current.cents)}${parts.length > 1 ? ` · ${current.label}` : ""}` : "Nothing to pay"}
                   </Button>

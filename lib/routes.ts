@@ -10,4 +10,6 @@ export const ROUTES = {
   notifications: "/notifications",
   auditLog: "/audit-log",
   kitchen: "/kitchen",
+  shift: "/shift",
+  foodSafety: "/food-safety",
 } as const

@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { delay } from "@/lib/mock"
 import { OrderMeta } from "@/components/orders/order-meta"
 import { useOrders } from "@/components/orders/orders-provider"
+import { useShift } from "@/components/shift/shift-provider"
 import { useApproval } from "@/components/auth/approval-provider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -26,6 +27,7 @@ const tabs = ["Active", "Completed", "All"]
 export default function OrdersPage() {
   const { toast, notify } = useNotifications()
   const { requestApproval } = useApproval()
+  const { recordAdjustment } = useShift()
   const { log } = useAudit()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<typeof initialOrders[0] | null>(null)
@@ -69,6 +71,7 @@ export default function OrdersPage() {
     setActing(false)
     const full = kind === "void" || cents === parseMoney(order.total)
     if (full) setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: kind === "void" ? "Voided" : "Refunded" } : o)))
+    recordAdjustment({ kind, orderId: order.id, cents: kind === "void" ? parseMoney(order.total) : cents, reason })
     log({ category: kind === "void" ? "Order" : "Payment", action: kind === "void" ? `Order ${order.id} voided` : `Refund issued (${order.id})`, detail: `${reason}${kind === "refund" ? ` · ${fmt(cents)}${full ? "" : " (partial)"}` : ""}`, flagged: true })
     notify({ title: kind === "void" ? `Order ${order.id} voided` : `Refunded ${fmt(cents)}`, description: reason, type: "warning" })
     setAction(null)

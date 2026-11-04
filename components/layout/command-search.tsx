@@ -8,7 +8,9 @@ import {
   IconCreditCard,
   IconFileText,
   IconChefHat,
+  IconClockHour4,
   IconHistory,
+  IconTemperature,
   IconLayoutDashboard,
   IconReceipt,
   IconSearch,
@@ -29,6 +31,8 @@ const suggestions = [
   { label: "Process a payment", icon: IconCreditCard, href: ROUTES.payment },
   { label: "Open kitchen display", icon: IconChefHat, href: ROUTES.kitchen },
   { label: "View notifications", icon: IconBell, href: ROUTES.notifications },
+  { label: "Shift & Z-report", icon: IconClockHour4, href: ROUTES.shift },
+  { label: "Log a temperature", icon: IconTemperature, href: ROUTES.foodSafety },
   { label: "View audit log", icon: IconHistory, href: ROUTES.auditLog },
 ]
 const pages = [

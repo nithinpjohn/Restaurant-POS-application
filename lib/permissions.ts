@@ -6,7 +6,7 @@ export const USERS: Record<Role, { name: string; email: string; label: string }>
   server: { name: "Tom Reyes", email: "tom@kansresto.com", label: "Server" },
 }
 
-export type Permission = "menu.delete" | "table.delete" | "order.void" | "payment.refund" | "audit.view"
+export type Permission = "menu.delete" | "table.delete" | "order.void" | "payment.refund" | "audit.view" | "shift.close"
 
 const ALLOWED: Record<Permission, Role[]> = {
   "menu.delete": ["manager"],
@@ -14,6 +14,7 @@ const ALLOWED: Record<Permission, Role[]> = {
   "order.void": ["manager"],
   "payment.refund": ["manager"],
   "audit.view": ["manager"],
+  "shift.close": ["manager"],
 }
 
 export const can = (role: Role, perm: Permission) => ALLOWED[perm].includes(role)

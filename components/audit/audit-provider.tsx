@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/auth/auth-provider"
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
-export type AuditCategory = "Menu" | "Order" | "Payment" | "Table" | "Allergen" | "Inventory" | "System"
+export type AuditCategory = "Menu" | "Order" | "Payment" | "Table" | "Allergen" | "Inventory" | "Shift" | "Safety" | "System"
 
 export type AuditEntry = {
   id: string

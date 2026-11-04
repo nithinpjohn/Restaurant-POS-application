@@ -6,27 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { IconSearch, IconPlus } from "@tabler/icons-react"
-import { useToast } from "@/hooks/use-toast"
+import { useNotifications } from "@/components/notifications/notifications-provider"
 import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
+import { delay } from "@/lib/mock"
+import { Spinner } from "@/components/ui/spinner"
+import { initialOrders } from "@/lib/data/orders"
 
-const initialOrders = [
-  { id: "ORD-001", table: "Table 5", items: 4, total: "$42.50", status: "Preparing", time: "10:30 AM", date: "Today", details: [{ name: "Caesar Salad", quantity: 1, price: "$8.99" }, { name: "Margherita Pizza", quantity: 1, price: "$14.99" }, { name: "Iced Tea", quantity: 2, price: "$5.98" }, { name: "Tiramisu", quantity: 1, price: "$7.99" }] },
-  { id: "ORD-002", table: "Table 3", items: 2, total: "$18.20", status: "Ready", time: "10:45 AM", date: "Today", details: [{ name: "Garlic Bread", quantity: 1, price: "$4.99" }, { name: "Chicken Alfredo", quantity: 1, price: "$16.99" }] },
-  { id: "ORD-003", table: "Table 7", items: 6, total: "$65.75", status: "Preparing", time: "11:00 AM", date: "Today", details: [{ name: "Garlic Bread", quantity: 2, price: "$9.98" }, { name: "Grilled Salmon", quantity: 1, price: "$18.99" }, { name: "Caesar Salad", quantity: 1, price: "$8.99" }, { name: "Cheesecake", quantity: 1, price: "$6.99" }, { name: "Iced Tea", quantity: 2, price: "$5.98" }] },
-  { id: "ORD-004", table: "Table 2", items: 3, total: "$32.40", status: "Completed", time: "10:15 AM", date: "Today", details: [{ name: "Margherita Pizza", quantity: 1, price: "$14.99" }, { name: "Caesar Salad", quantity: 1, price: "$8.99" }, { name: "Iced Tea", quantity: 2, price: "$5.98" }] },
-  { id: "ORD-005", table: "Table 9", items: 5, total: "$54.30", status: "Preparing", time: "11:15 AM", date: "Today", details: [{ name: "Garlic Bread", quantity: 1, price: "$4.99" }, { name: "Grilled Salmon", quantity: 1, price: "$18.99" }, { name: "Chocolate Cake", quantity: 1, price: "$6.99" }, { name: "Iced Tea", quantity: 2, price: "$5.98" }] },
-  { id: "ORD-006", table: "Table 6", items: 3, total: "$36.80", status: "Served", time: "11:20 AM", date: "Today", details: [{ name: "Margherita Pizza", quantity: 1, price: "$14.99" }, { name: "Garlic Bread", quantity: 1, price: "$4.99" }, { name: "Tiramisu", quantity: 1, price: "$7.99" }, { name: "Iced Tea", quantity: 1, price: "$2.99" }] },
-  { id: "ORD-007", table: "Table 12", items: 4, total: "$48.25", status: "Preparing", time: "11:30 AM", date: "Today", details: [{ name: "Chicken Alfredo", quantity: 1, price: "$16.99" }, { name: "Caesar Salad", quantity: 1, price: "$8.99" }, { name: "Garlic Bread", quantity: 1, price: "$4.99" }, { name: "Cheesecake", quantity: 1, price: "$6.99" }, { name: "Iced Tea", quantity: 2, price: "$5.98" }] },
-  { id: "ORD-008", table: "Table 1", items: 2, total: "$22.50", status: "Ready", time: "11:35 AM", date: "Today", details: [{ name: "Margherita Pizza", quantity: 1, price: "$14.99" }, { name: "Iced Tea", quantity: 2, price: "$5.98" }] },
-  { id: "ORD-009", table: "Table 8", items: 5, total: "$58.90", status: "Completed", time: "10:30 AM", date: "Yesterday", details: [{ name: "Grilled Salmon", quantity: 1, price: "$18.99" }, { name: "Caesar Salad", quantity: 1, price: "$8.99" }, { name: "Garlic Bread", quantity: 1, price: "$4.99" }, { name: "Chocolate Cake", quantity: 1, price: "$6.99" }, { name: "Iced Tea", quantity: 3, price: "$8.97" }] },
-  { id: "ORD-010", table: "Table 4", items: 2, total: "$24.75", status: "Completed", time: "10:45 AM", date: "Yesterday", details: [{ name: "Chicken Alfredo", quantity: 1, price: "$16.99" }, { name: "Iced Tea", quantity: 1, price: "$2.99" }, { name: "Tiramisu", quantity: 1, price: "$7.99" }] },
-]
 
 const tabs = ["Active", "Completed", "All"]
 
 export default function OrdersPage() {
-  const { toast } = useToast()
+  const { toast } = useNotifications()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<typeof initialOrders[0] | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -44,7 +35,13 @@ export default function OrdersPage() {
 
   const displayOrders = activeTab === "Active" ? activeOrders : activeTab === "Completed" ? completedOrders : filteredOrders
 
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    if (updatingId) return
+    setUpdatingId(orderId)
+    await delay(600)
+    setUpdatingId(null)
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)))
     if (selectedOrder?.id === orderId) setSelectedOrder((prev) => prev ? { ...prev, status: newStatus } : null)
     toast({ title: `Order ${orderId} Updated`, description: `Status changed to ${newStatus}` })
@@ -130,17 +127,17 @@ export default function OrdersPage() {
                     View Details
                   </Button>
                   {order.status === "Preparing" && (
-                    <Button size="sm" className="rounded-full text-xs h-8" onClick={() => updateOrderStatus(order.id, "Ready")}>
+                    <Button size="sm" className="rounded-full text-xs h-8" disabled={updatingId === order.id} onClick={() => updateOrderStatus(order.id, "Ready")}>{updatingId === order.id && <Spinner />}
                       Mark as Ready
                     </Button>
                   )}
                   {order.status === "Ready" && (
-                    <Button size="sm" className="rounded-full text-xs h-8" onClick={() => updateOrderStatus(order.id, "Served")}>
+                    <Button size="sm" className="rounded-full text-xs h-8" disabled={updatingId === order.id} onClick={() => updateOrderStatus(order.id, "Served")}>{updatingId === order.id && <Spinner />}
                       Mark as Served
                     </Button>
                   )}
                   {order.status === "Served" && (
-                    <Button size="sm" className="rounded-full text-xs h-8" onClick={() => updateOrderStatus(order.id, "Completed")}>
+                    <Button size="sm" className="rounded-full text-xs h-8" disabled={updatingId === order.id} onClick={() => updateOrderStatus(order.id, "Completed")}>{updatingId === order.id && <Spinner />}
                       Complete Order
                     </Button>
                   )}

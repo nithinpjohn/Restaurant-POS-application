@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { ROUTES } from "@/lib/routes"
+import { delay } from "@/lib/mock"
+import { Spinner } from "@/components/ui/spinner"
+import { useNotifications } from "@/components/notifications/notifications-provider"
 
 const menuItems = [
   { id: 1, name: "Caesar Salad", category: "Appetizer", price: 8.99, originalPrice: 11.5, discount: 15, available: 12, image: "/images/caesar-salad.jpg" },
@@ -106,10 +109,17 @@ export default function NewOrderPage() {
   const tax = subtotal * 0.08
   const total = subtotal + tax
 
-  const handlePlaceOrder = () => {
+  const { notify } = useNotifications()
+  const [placing, setPlacing] = useState(false)
+
+  const handlePlaceOrder = async () => {
+    setPlacing(true)
+    await delay()
     const newOrderNumber = `ORD-${Math.floor(Math.random() * 1000).toString().padStart(3, "0")}`
     setOrderNumber(newOrderNumber)
+    setPlacing(false)
     setIsOrderPlaced(true)
+    notify({ title: `Order ${newOrderNumber} placed`, description: `${customerName} · $${total.toFixed(2)}`, href: ROUTES.orders })
   }
 
   const pad = (n: number) => String(n).padStart(2, "0")
@@ -366,8 +376,10 @@ export default function NewOrderPage() {
               <Button
                 className="w-full mt-4 h-12 rounded-xl text-sm font-semibold"
                 onClick={handlePlaceOrder}
+                disabled={placing}
               >
-                Order Now
+                {placing && <Spinner />}
+                {placing ? "Placing order…" : "Order Now"}
               </Button>
             </div>
           )}

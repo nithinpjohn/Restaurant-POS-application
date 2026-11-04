@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,23 +18,24 @@ import { MenuEditForm } from "@/components/menu/menu-edit-form"
 import { Switch } from "@/components/ui/switch"
 import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
+import { initialMenuItems } from "@/lib/data/menu"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
+import { useNotifications } from "@/components/notifications/notifications-provider"
+import { delay } from "@/lib/mock"
+import { ROUTES } from "@/lib/routes"
 
-const initialMenuItems = [
-  { id: 1, name: "Caesar Salad", category: "Appetizers", price: 8.99, image: "/images/caesar-salad.jpg", description: "Fresh romaine lettuce with Caesar dressing, croutons, and parmesan cheese.", available: true },
-  { id: 2, name: "Margherita Pizza", category: "Main Courses", price: 14.99, image: "/images/margherita-pizza.jpg", description: "Classic pizza with tomato sauce, fresh mozzarella, and basil.", available: true },
-  { id: 3, name: "Chocolate Cake", category: "Desserts", price: 6.99, image: "/images/chocolate-cake.jpg", description: "Rich chocolate cake with a layer of chocolate ganache.", available: true },
-  { id: 4, name: "Garlic Bread", category: "Appetizers", price: 4.99, image: "/images/garlic-bread.jpg", description: "Toasted bread with garlic butter and herbs.", available: true },
-  { id: 5, name: "Grilled Salmon", category: "Main Courses", price: 18.99, image: "/images/grilled-salmon.jpg", description: "Fresh salmon fillet grilled with lemon and herbs, served with seasonal vegetables.", available: true },
-  { id: 6, name: "Tiramisu", category: "Desserts", price: 7.99, image: "/images/tiramisu.jpg", description: "Italian dessert made of ladyfingers dipped in coffee, layered with mascarpone cheese.", available: true },
-  { id: 7, name: "Iced Tea", category: "Drinks", price: 2.99, image: "/images/iced-tea.jpg", description: "Refreshing iced tea with lemon slice.", available: true },
-  { id: 8, name: "Chicken Alfredo", category: "Main Courses", price: 16.99, image: "/images/chicken-alfredo.jpg", description: "Fettuccine pasta with creamy Alfredo sauce and grilled chicken.", available: true },
-  { id: 9, name: "Cheesecake", category: "Desserts", price: 6.99, image: "/images/cheesecake.jpg", description: "Creamy New York style cheesecake with graham cracker crust.", available: true },
-]
 
 const categories = ["All", "Appetizers", "Main Courses", "Desserts", "Drinks"]
 
 export default function MenuPage() {
+  const { notify } = useNotifications()
   const [menuItems, setMenuItems] = useState(initialMenuItems)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => { delay(700).then(() => setLoading(false)) }, [])
   const [searchTerm, setSearchTerm] = useState("")
   const [activeCategory, setActiveCategory] = useState("All")
   const [editingItem, setEditingItem] = useState<typeof initialMenuItems[0] | null>(null)
@@ -51,28 +52,41 @@ export default function MenuPage() {
     return matchesSearch && matchesCategory
   })
 
-  const handleAddItem = (newItem: any) => {
+  const handleAddItem = async (newItem: any) => {
+    setSaving(true)
+    await delay()
     const newId = Math.max(...menuItems.map((item) => item.id), 0) + 1
     setMenuItems([...menuItems, { ...newItem, id: newId }])
+    setSaving(false)
     setIsAddDialogOpen(false)
+    notify({ title: "Menu item added", description: `${newItem.name} is now on the menu.`, href: ROUTES.menu })
   }
 
-  const handleEditItem = (updatedItem: any) => {
+  const handleEditItem = async (updatedItem: any) => {
+    setSaving(true)
+    await delay()
+    setSaving(false)
     setMenuItems(menuItems.map((item) => (item.id === updatedItem.id ? updatedItem : item)))
     setIsEditDialogOpen(false)
     setEditingItem(null)
+    notify({ title: "Menu item updated", description: `${updatedItem.name} was saved.`, type: "info" })
   }
 
-  const handleDeleteItem = () => {
-    if (itemToDelete) {
-      setMenuItems(menuItems.filter((item) => item.id !== itemToDelete.id))
-      setIsDeleteDialogOpen(false)
-      setItemToDelete(null)
-    }
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return
+    setDeleting(true)
+    await delay()
+    setMenuItems(menuItems.filter((item) => item.id !== itemToDelete.id))
+    setDeleting(false)
+    setIsDeleteDialogOpen(false)
+    notify({ title: "Menu item deleted", description: `${itemToDelete.name} was removed.`, type: "warning" })
+    setItemToDelete(null)
   }
 
   const toggleAvailability = (id: number, checked: boolean) => {
     setMenuItems(menuItems.map((item) => (item.id === id ? { ...item, available: checked } : item)))
+    const name = menuItems.find((i) => i.id === id)?.name
+    notify({ title: `${name} ${checked ? "available" : "unavailable"}`, type: checked ? "success" : "warning" })
   }
 
   return (
@@ -94,7 +108,7 @@ export default function MenuPage() {
                 <DialogTitle>Add New Menu Item</DialogTitle>
                 <DialogDescription>Create a new item for your restaurant menu.</DialogDescription>
               </DialogHeader>
-              <MenuEditForm onSubmit={handleAddItem} onCancel={() => setIsAddDialogOpen(false)} />
+              <MenuEditForm submitting={saving} onSubmit={handleAddItem} onCancel={() => setIsAddDialogOpen(false)} />
             </DialogContent>
           </Dialog>
         </div>
@@ -117,8 +131,16 @@ export default function MenuPage() {
           ))}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredItems.map((item) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-busy={loading}>
+          {loading && Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="space-y-3 rounded-2xl border border-border bg-card p-3">
+              <Skeleton className="aspect-[4/3] w-full rounded-xl" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-3 w-full" />
+              <div className="flex justify-between"><Skeleton className="h-5 w-14" /><Skeleton className="h-7 w-24 rounded-full" /></div>
+            </div>
+          ))}
+          {!loading && filteredItems.map((item) => (
             <div key={item.id} className={cn("bg-card border border-border rounded-2xl p-3 transition-opacity", !item.available && "opacity-50")}>
               <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-secondary">
                 <Image src={item.image} alt={item.name} fill className="object-cover" />
@@ -169,7 +191,7 @@ export default function MenuPage() {
             <DialogDescription>Make changes to the menu item.</DialogDescription>
           </DialogHeader>
           {editingItem && (
-            <MenuEditForm item={editingItem} onSubmit={handleEditItem} onCancel={() => setIsEditDialogOpen(false)} />
+            <MenuEditForm submitting={saving} item={editingItem} onSubmit={handleEditItem} onCancel={() => setIsEditDialogOpen(false)} />
           )}
         </DialogContent>
       </Dialog>
@@ -184,11 +206,11 @@ export default function MenuPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button variant="outline" className="rounded-xl" disabled={deleting} onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" className="rounded-xl" onClick={handleDeleteItem}>
-              Delete
+            <Button variant="destructive" className="rounded-xl" disabled={deleting} onClick={handleDeleteItem}>
+              {deleting && <Spinner />}Delete
             </Button>
           </DialogFooter>
         </DialogContent>

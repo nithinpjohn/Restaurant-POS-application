@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { IconCreditCard, IconCircleCheck } from "@tabler/icons-react"
 import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
+import { delay } from "@/lib/mock"
+import { Spinner } from "@/components/ui/spinner"
+import { useNotifications } from "@/components/notifications/notifications-provider"
 
 const tipOptions = [
   { label: "15%", value: 0.15 },
@@ -19,6 +22,8 @@ export default function PaymentPage() {
   const [selectedTip, setSelectedTip] = useState<number | null>(null)
   const [customTip, setCustomTip] = useState("")
   const [isPaid, setIsPaid] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const { notify } = useNotifications()
 
   const subtotal = 38.50
   const tax = subtotal * 0.08
@@ -143,9 +148,15 @@ export default function PaymentPage() {
                 </div>
               </div>
 
-              <Button className="w-full h-12 rounded-xl gap-2 text-sm font-semibold" onClick={() => setIsPaid(true)}>
-                <IconCreditCard className="h-4 w-4" />
-                Process Payment - ${total.toFixed(2)}
+              <Button className="w-full h-12 rounded-xl gap-2 text-sm font-semibold" disabled={processing || isPaid} onClick={async () => {
+                setProcessing(true)
+                await delay(1200)
+                setProcessing(false)
+                setIsPaid(true)
+                notify({ title: "Payment successful", description: `$${total.toFixed(2)} received. Receipt #12345 sent.` })
+              }}>
+                {processing ? <Spinner /> : <IconCreditCard className="h-4 w-4" />}
+                {processing ? "Processing…" : `Process Payment - $${total.toFixed(2)}`}
               </Button>
             </div>
           </div>

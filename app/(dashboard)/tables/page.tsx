@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { IconPlus, IconTrash, IconUsers, IconClock, IconUserCircle } from "@tabler/icons-react"
-import { useToast } from "@/hooks/use-toast"
+import { useNotifications } from "@/components/notifications/notifications-provider"
 import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
 
@@ -42,7 +42,7 @@ const sampleOrders: Record<string, { id: string; items: { name: string; quantity
 }
 
 export default function TablesPage() {
-  const { toast } = useToast()
+  const { toast } = useNotifications()
   const [tables, setTables] = useState(initialTables)
   const [isAddTableOpen, setIsAddTableOpen] = useState(false)
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false)

@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { IconSearch, IconUser, IconSettings, IconLogout, IconBell } from "@tabler/icons-react"
+import { CommandSearch } from "@/components/layout/command-search"
+import { useNotifications } from "@/components/notifications/notifications-provider"
 import { ROUTES } from "@/lib/routes"
 import { cn } from "@/lib/utils"
 
@@ -36,6 +38,7 @@ export function PosHeader({
   onSearchChange?: (value: string) => void
 }) {
   const pathname = usePathname()
+  const { unreadCount, setPanelOpen } = useNotifications()
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between bg-card px-6 py-3 border-b border-border">
@@ -67,6 +70,7 @@ export function PosHeader({
       </div>
 
       <div className="flex items-center gap-3">
+        <CommandSearch />
         {onSearchChange && (
           <div className="relative w-64">
             <IconSearch className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -79,9 +83,16 @@ export function PosHeader({
           </div>
         )}
 
-        <button className="relative h-9 w-9 flex items-center justify-center rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+        <button
+          aria-label={`Notifications (${unreadCount} unread)`}
+          onClick={() => setPanelOpen(true)}
+          className="relative h-9 w-9 flex items-center justify-center rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors">
           <IconBell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-500" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-semibold text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
         </button>
 
         <DropdownMenu>

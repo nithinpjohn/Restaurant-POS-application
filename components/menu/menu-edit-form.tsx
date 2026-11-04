@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -9,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { DialogFooter } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 
-export function MenuEditForm({ item = undefined, onSubmit, onCancel }) {
+export function MenuEditForm({ item = undefined, onSubmit, onCancel, submitting = false }) {
   const [formData, setFormData] = useState({
     name: item?.name || "",
     category: item?.category || "",
@@ -139,10 +140,10 @@ export function MenuEditForm({ item = undefined, onSubmit, onCancel }) {
         </div>
       </div>
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
-        <Button type="submit">Save Changes</Button>
+        <Button type="submit" disabled={submitting}>{submitting && <Spinner />}Save Changes</Button>
       </DialogFooter>
     </form>
   )

@@ -9,6 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PosHeader } from "@/components/layout/pos-header"
 import { useAudit, type AuditCategory } from "@/components/audit/audit-provider"
 import { delay } from "@/lib/mock"
+import { IconLock } from "@tabler/icons-react"
+import { useAuth } from "@/components/auth/auth-provider"
+import { useApproval } from "@/components/auth/approval-provider"
 import { cn } from "@/lib/utils"
 
 const categories: ("All" | AuditCategory)[] = ["All", "Menu", "Order", "Payment", "Table", "Allergen", "System"]
@@ -17,6 +20,9 @@ const csvCell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`
 
 export default function AuditLogPage() {
   const { entries, ready } = useAudit()
+  const { can } = useAuth()
+  const { requestApproval } = useApproval()
+  const [unlocked, setUnlocked] = useState(false)
   const [category, setCategory] = useState<(typeof categories)[number]>("All")
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [q, setQ] = useState("")
@@ -44,6 +50,20 @@ export default function AuditLogPage() {
   }
 
   const busy = loading || !ready
+
+  if (!can("audit.view") && !unlocked) {
+    return (
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <PosHeader />
+        <main className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+          <IconLock className="h-10 w-10 text-muted-foreground" />
+          <h1 className="text-xl font-semibold text-foreground">Manager access required</h1>
+          <p className="max-w-sm text-sm text-muted-foreground">The audit log is limited to managers. A manager can approve access with their PIN.</p>
+          <Button className="rounded-xl" onClick={async () => setUnlocked(await requestApproval({ perm: "audit.view", reason: "Open the audit log" }))}>Enter manager PIN</Button>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">

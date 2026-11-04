@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { useNotifications } from "@/components/notifications/notifications-provider"
 import { delay } from "@/lib/mock"
+import { useApproval } from "@/components/auth/approval-provider"
 import { PageSearch } from "@/components/layout/page-search"
 import { AllergenBadges } from "@/components/menu/allergen-badges"
 import { useAudit } from "@/components/audit/audit-provider"
@@ -34,6 +35,7 @@ const categories = ["All", "Appetizers", "Main Courses", "Desserts", "Drinks"]
 export default function MenuPage() {
   const { notify } = useNotifications()
   const { log } = useAudit()
+  const { requestApproval } = useApproval()
   const [menuItems, setMenuItems] = useState(initialMenuItems)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -157,7 +159,7 @@ export default function MenuPage() {
               </div>
               <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="min-w-0">
-                  <h3 className="font-medium text-sm text-foreground truncate">{item.name}</h3>
+                  <h3 className="font-medium text-sm text-foreground truncate">{item.name}{item.ageRestricted && <span className="ml-1.5 rounded bg-foreground px-1 py-0.5 text-[10px] font-semibold text-background">18+</span>}</h3>
                   <p className="text-xs text-muted-foreground">{item.category}</p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -183,7 +185,10 @@ export default function MenuPage() {
                     variant="outline"
                     size="sm"
                     className="h-7 w-7 rounded-full p-0 text-destructive border-destructive/30 hover:bg-destructive/10"
-                    onClick={() => { setItemToDelete(item); setIsDeleteDialogOpen(true) }}
+                    onClick={async () => {
+                      if (!(await requestApproval({ perm: "menu.delete", reason: `Delete ${item.name}` }))) return
+                      setItemToDelete(item); setIsDeleteDialogOpen(true)
+                    }}
                   >
                     <IconTrash className="h-3 w-3" />
                   </Button>

@@ -21,6 +21,7 @@ export function MenuEditForm({ item = undefined, onSubmit, onCancel, submitting 
     image: item?.image || "/placeholder.svg?height=100&width=100",
     available: item?.available !== undefined ? item.available : true,
     allergens: (item?.allergens || []) as string[],
+    ageRestricted: (item?.ageRestricted ?? false) as boolean,
   })
 
   const toggleAllergen = (a: string) =>
@@ -158,6 +159,13 @@ export function MenuEditForm({ item = undefined, onSubmit, onCancel, submitting 
                 {a}
               </button>
             ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="age" className="text-right">18+ only</Label>
+          <div className="col-span-3 flex items-center gap-2">
+            <Switch id="age" checked={formData.ageRestricted} onCheckedChange={(v) => setFormData({ ...formData, ageRestricted: v })} />
+            <span className="text-sm text-muted-foreground">{formData.ageRestricted ? "Requires an age check at order" : "No age check"}</span>
           </div>
         </div>
       </div>

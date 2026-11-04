@@ -1,5 +1,6 @@
 "use client"
 
+import { useAuth } from "@/components/auth/auth-provider"
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
 export type AuditCategory = "Menu" | "Order" | "Payment" | "Table" | "Allergen" | "System"
@@ -24,12 +25,11 @@ type Ctx = {
 
 const KEY = "kans-resto-audit-log"
 const MAX = 500
-// ponytail: single hard-coded user until real auth exists; swap for the session user.
-const CURRENT_USER = "Emir Abiyyu (Manager)"
 
 const AuditContext = createContext<Ctx | null>(null)
 
 export function AuditProvider({ children }: { children: React.ReactNode }) {
+  const { actor } = useAuth()
   const [entries, setEntries] = useState<AuditEntry[]>([])
   const [ready, setReady] = useState(false)
 
@@ -49,9 +49,9 @@ export function AuditProvider({ children }: { children: React.ReactNode }) {
 
   const log = useCallback<Ctx["log"]>((e) => {
     setEntries((prev) =>
-      [{ ...e, actor: e.actor ?? CURRENT_USER, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, at: Date.now() }, ...prev].slice(0, MAX),
+      [{ ...e, actor: e.actor ?? actor, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, at: Date.now() }, ...prev].slice(0, MAX),
     )
-  }, [])
+  }, [actor])
 
   const value = useMemo(() => ({ entries, ready, log, clear: () => setEntries([]) }), [entries, ready, log])
   return <AuditContext.Provider value={value}>{children}</AuditContext.Provider>

@@ -8,4 +8,6 @@ export const initialMenuItems = [
   { id: 7, name: "Iced Tea", category: "Drinks", price: 2.99, image: "/images/iced-tea.jpg", description: "Refreshing iced tea with lemon slice.", available: true, allergens: [] },
   { id: 8, name: "Chicken Alfredo", category: "Main Courses", price: 16.99, image: "/images/chicken-alfredo.jpg", description: "Fettuccine pasta with creamy Alfredo sauce and grilled chicken.", available: true, allergens: ["Gluten","Dairy"] },
   { id: 9, name: "Cheesecake", category: "Desserts", price: 6.99, image: "/images/cheesecake.jpg", description: "Creamy New York style cheesecake with graham cracker crust.", available: true, allergens: ["Gluten","Dairy","Eggs"] },
+  { id: 10, name: "Craft Beer", category: "Drinks", price: 6.5, image: "/placeholder.jpg", description: "Local pale ale, 330ml.", available: true, allergens: ["Gluten"], ageRestricted: true },
+  { id: 11, name: "House Red Wine", category: "Drinks", price: 8.5, image: "/placeholder.jpg", description: "Glass of medium-bodied red wine.", available: true, allergens: [], ageRestricted: true },
 ]

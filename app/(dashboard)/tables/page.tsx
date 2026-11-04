@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { IconPlus, IconTrash, IconUsers, IconClock, IconUserCircle } from "@tabler/icons-react"
+import { useApproval } from "@/components/auth/approval-provider"
 import { useAudit } from "@/components/audit/audit-provider"
 import { useNotifications } from "@/components/notifications/notifications-provider"
 import { PosHeader } from "@/components/layout/pos-header"
@@ -45,6 +46,7 @@ const sampleOrders: Record<string, { id: string; items: { name: string; quantity
 export default function TablesPage() {
   const { toast } = useNotifications()
   const { log } = useAudit()
+  const { requestApproval } = useApproval()
   const [tables, setTables] = useState(initialTables)
   const [isAddTableOpen, setIsAddTableOpen] = useState(false)
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false)
@@ -97,8 +99,9 @@ export default function TablesPage() {
     toast({ title: "Guests Seated", description: `${guests} guests at Table ${selectedTable?.number}.` })
   }
 
-  const handleDeleteTableClick = (table: typeof initialTables[0]) => {
+  const handleDeleteTableClick = async (table: typeof initialTables[0]) => {
     if (table.status === "occupied") { toast({ title: "Cannot delete occupied table", variant: "destructive" }); return }
+    if (!(await requestApproval({ perm: "table.delete", reason: `Delete Table ${table.number}` }))) return
     setTableToDelete(table); setIsDeleteTableOpen(true)
   }
 

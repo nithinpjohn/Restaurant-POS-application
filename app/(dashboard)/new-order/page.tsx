@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils"
 import { ROUTES } from "@/lib/routes"
 import { delay } from "@/lib/mock"
+import { ageOf, MIN_AGE } from "@/lib/age"
 import { PageSearch } from "@/components/layout/page-search"
 import { AllergenBadges } from "@/components/menu/allergen-badges"
 import { useAudit } from "@/components/audit/audit-provider"
@@ -42,9 +43,12 @@ const menuItems = [
   { id: 7, name: "Iced Tea", category: "Beverages", price: 2.99, originalPrice: null, discount: 0, available: 16, image: "/images/iced-tea.jpg" },
   { id: 8, name: "Chicken Alfredo", category: "Main Course", price: 16.99, originalPrice: null, discount: 0, available: 18, image: "/images/chicken-alfredo.jpg" },
   { id: 9, name: "Cheesecake", category: "Dessert", price: 6.99, originalPrice: null, discount: 0, available: 8, image: "/images/cheesecake.jpg" },
+  { id: 10, name: "Craft Beer", category: "Beverages", price: 6.5, originalPrice: null, discount: 0, available: 24, image: "/placeholder.jpg" },
+  { id: 11, name: "House Red Wine", category: "Beverages", price: 8.5, originalPrice: null, discount: 0, available: 18, image: "/placeholder.jpg" },
 ]
 
 const allergensByName = Object.fromEntries(initialMenuItems.map((i) => [i.name, i.allergens]))
+const ageRestricted = new Set(initialMenuItems.filter((i) => i.ageRestricted).map((i) => i.name))
 const allergensOf = (name: string): string[] => allergensByName[name] ?? []
 
 type CartLine = { id: number; name: string; price: number; quantity: number; image: string; mods?: string[]; notes?: string }
@@ -91,7 +95,33 @@ export default function NewOrderPage() {
     setGuestAllergies((g) => (g.includes(a) ? g.filter((x) => x !== a) : [...g, a]))
 
   // Ask before adding a dish that contains something the guest is allergic to.
+  // Alcohol needs a one-time age check per order.
+  const [ageVerified, setAgeVerified] = useState(false)
+  const [ageGate, setAgeGate] = useState<{ item: typeof menuItems[0] | null } | null>(null)
+  const [dob, setDob] = useState("")
+  const [ageError, setAgeError] = useState("")
+
   const addToCart = (item: typeof menuItems[0]) => {
+    if (ageRestricted.has(item.name) && !ageVerified) { setDob(""); setAgeError(""); setAgeGate({ item }) }
+    else addWithAllergenCheck(item)
+  }
+
+  const confirmAge = () => {
+    if (!ageGate) return
+    if (ageOf(dob) < MIN_AGE) {
+      setAgeError(`Guest must be ${MIN_AGE} or older to be served alcohol.`)
+      log({ category: "Order", action: "Age check failed", detail: `${customerName} · ${ageGate.item?.name ?? "order with alcohol"} not served`, flagged: true })
+      return
+    }
+    setAgeVerified(true)
+    log({ category: "Order", action: "Age check passed", detail: `${customerName} verified ${MIN_AGE}+ (date of birth not stored)` })
+    const gate = ageGate
+    setAgeGate(null)
+    if (gate.item) addWithAllergenCheck(gate.item)
+    else handlePlaceOrder(true)
+  }
+
+  const addWithAllergenCheck = (item: typeof menuItems[0]) => {
     const hit = conflicts(allergensOf(item.name), guestAllergies)
     if (hit.length) setPending({ item, hit })
     else commitAdd(item)
@@ -189,14 +219,14 @@ export default function NewOrderPage() {
     setHeld((h) => [snapshot(), ...h])
     log({ category: "Order", action: "Order held", detail: `${customerName} · ${cart.length} items · $${total.toFixed(2)}` })
     notify({ title: "Order held", description: `${customerName}'s order was parked.`, type: "info" })
-    setCart([]); setCoupon(null); setGuestAllergies([]); setOverrideCount(0)
+    setCart([]); setCoupon(null); setGuestAllergies([]); setOverrideCount(0); setAgeVerified(false)
   }
 
   const resumeOrder = (o: HeldOrder) => {
     // Park whatever is on screen so nothing is lost.
     setHeld((h) => [...(cart.length ? [snapshot()] : []), ...h.filter((x) => x.id !== o.id)])
     setCart(o.cart); setCustomerName(o.label); setPersonCount(o.personCount)
-    setGuestAllergies(o.guestAllergies); setCoupon(o.coupon); setOverrideCount(0)
+    setGuestAllergies(o.guestAllergies); setCoupon(o.coupon); setOverrideCount(0); setAgeVerified(false)
     setHeldOpen(false)
     log({ category: "Order", action: "Held order resumed", detail: `${o.label} · ${o.cart.length} items` })
   }
@@ -234,7 +264,8 @@ export default function NewOrderPage() {
   const { notify } = useNotifications()
   const [placing, setPlacing] = useState(false)
 
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = async (verified = ageVerified) => {
+    if (!verified && cart.some((c) => ageRestricted.has(c.name))) { setDob(""); setAgeError(""); setAgeGate({ item: null }); return }
     setPlacing(true)
     await delay()
     const newOrderNumber = `ORD-${Math.floor(Math.random() * 1000).toString().padStart(3, "0")}`
@@ -278,7 +309,7 @@ export default function NewOrderPage() {
                         Available: {item.available}
                       </span>
                     </div>
-                    <h3 className="font-medium text-sm text-foreground">{item.name}</h3>
+                    <h3 className="font-medium text-sm text-foreground">{item.name}{ageRestricted.has(item.name) && <span className="ml-1.5 rounded bg-foreground px-1 py-0.5 text-[10px] font-semibold text-background">18+</span>}</h3>
                     <AllergenBadges allergens={allergensOf(item.name)} highlight={guestAllergies} className="mt-1" />
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs font-medium bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">
@@ -351,7 +382,7 @@ export default function NewOrderPage() {
                         Available: {item.available}
                       </span>
                     </div>
-                    <h3 className="font-medium text-sm text-foreground">{item.name}</h3>
+                    <h3 className="font-medium text-sm text-foreground">{item.name}{ageRestricted.has(item.name) && <span className="ml-1.5 rounded bg-foreground px-1 py-0.5 text-[10px] font-semibold text-background">18+</span>}</h3>
                     <AllergenBadges allergens={allergensOf(item.name)} highlight={guestAllergies} className="mt-1" />
                     <p className="text-xs text-muted-foreground mt-0.5">Price per portion</p>
                     <div className="flex items-center justify-between mt-2">
@@ -594,7 +625,7 @@ export default function NewOrderPage() {
               </Button>
               <Button
                 className="h-12 flex-1 rounded-xl text-sm font-semibold"
-                onClick={handlePlaceOrder}
+                onClick={() => handlePlaceOrder()}
                 disabled={placing}
               >
                 {placing && <Spinner />}
@@ -632,6 +663,7 @@ export default function NewOrderPage() {
               onClick={() => {
                 setCart([])
                 setOverrideCount(0)
+                setAgeVerified(false)
                 setCoupon(null)
                 setIsOrderPlaced(false)
               }}
@@ -667,6 +699,21 @@ export default function NewOrderPage() {
               ))}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!ageGate} onOpenChange={(o) => !o && setAgeGate(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Age check</DialogTitle>
+            <DialogDescription>{ageGate?.item ? `${ageGate.item.name} is for guests ${MIN_AGE}+.` : "This order includes alcohol."} Check the guest's ID and enter their date of birth. It is not stored.</DialogDescription>
+          </DialogHeader>
+          <Input type="date" className="rounded-xl border-0 bg-secondary" max={new Date().toISOString().slice(0, 10)} value={dob} onChange={(e) => { setDob(e.target.value); setAgeError("") }} />
+          {ageError && <p role="alert" className="text-sm text-destructive">{ageError}</p>}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="rounded-xl" onClick={() => setAgeGate(null)}>Cancel</Button>
+            <Button className="rounded-xl" disabled={!dob} onClick={confirmAge}>Verify</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

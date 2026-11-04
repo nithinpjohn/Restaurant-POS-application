@@ -10,6 +10,10 @@ import { useNotifications } from "@/components/notifications/notifications-provi
 import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
 import { delay } from "@/lib/mock"
+import { useApproval } from "@/components/auth/approval-provider"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { parseMoney, fmt } from "@/lib/money"
 import { useAudit } from "@/components/audit/audit-provider"
 import { Spinner } from "@/components/ui/spinner"
 import { initialOrders } from "@/lib/data/orders"
@@ -18,7 +22,8 @@ import { initialOrders } from "@/lib/data/orders"
 const tabs = ["Active", "Completed", "All"]
 
 export default function OrdersPage() {
-  const { toast } = useNotifications()
+  const { toast, notify } = useNotifications()
+  const { requestApproval } = useApproval()
   const { log } = useAudit()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<typeof initialOrders[0] | null>(null)
@@ -39,6 +44,34 @@ export default function OrdersPage() {
 
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
+  // Void / refund (both need manager approval)
+  type Order = typeof initialOrders[0]
+  const [action, setAction] = useState<{ kind: "void" | "refund"; order: Order } | null>(null)
+  const [reason, setReason] = useState("")
+  const [refundAmt, setRefundAmt] = useState("")
+  const [acting, setActing] = useState(false)
+
+  const openAction = async (kind: "void" | "refund", order: Order) => {
+    const perm = kind === "void" ? "order.void" : "payment.refund"
+    if (!(await requestApproval({ perm, reason: `${kind === "void" ? "Void" : "Refund"} ${order.id}` }))) return
+    setReason(""); setRefundAmt((parseMoney(order.total) / 100).toFixed(2)); setAction({ kind, order })
+  }
+
+  const confirmAction = async () => {
+    if (!action) return
+    const { kind, order } = action
+    const cents = parseMoney(refundAmt)
+    if (kind === "refund" && (cents <= 0 || cents > parseMoney(order.total))) return toast({ title: "Invalid refund amount", description: `Enter an amount up to ${order.total}.`, variant: "destructive" })
+    setActing(true)
+    await delay(800)
+    setActing(false)
+    const full = kind === "void" || cents === parseMoney(order.total)
+    if (full) setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: kind === "void" ? "Voided" : "Refunded" } : o)))
+    log({ category: kind === "void" ? "Order" : "Payment", action: kind === "void" ? `Order ${order.id} voided` : `Refund issued (${order.id})`, detail: `${reason}${kind === "refund" ? ` · ${fmt(cents)}${full ? "" : " (partial)"}` : ""}`, flagged: true })
+    notify({ title: kind === "void" ? `Order ${order.id} voided` : `Refunded ${fmt(cents)}`, description: reason, type: "warning" })
+    setAction(null)
+  }
+
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     if (updatingId) return
     setUpdatingId(orderId)
@@ -55,6 +88,8 @@ export default function OrdersPage() {
       case "Ready": return "bg-emerald-100 text-emerald-700"
       case "Preparing": return "bg-amber-100 text-amber-700"
       case "Served": return "bg-blue-100 text-blue-700"
+      case "Voided": return "bg-red-100 text-red-700"
+      case "Refunded": return "bg-purple-100 text-purple-700"
       default: return "bg-secondary text-muted-foreground"
     }
   }
@@ -129,6 +164,12 @@ export default function OrdersPage() {
                   <Button variant="outline" size="sm" className="rounded-full text-xs h-8" onClick={() => { setSelectedOrder(order); setIsDetailsOpen(true) }}>
                     View Details
                   </Button>
+                  {["Preparing", "Ready", "Served"].includes(order.status) && (
+                    <Button variant="outline" size="sm" className="rounded-full text-xs h-8 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => openAction("void", order)}>Void</Button>
+                  )}
+                  {order.status === "Completed" && (
+                    <Button variant="outline" size="sm" className="rounded-full text-xs h-8" onClick={() => openAction("refund", order)}>Refund</Button>
+                  )}
                   {order.status === "Preparing" && (
                     <Button size="sm" className="rounded-full text-xs h-8" disabled={updatingId === order.id} onClick={() => updateOrderStatus(order.id, "Ready")}>{updatingId === order.id && <Spinner />}
                       Mark as Ready
@@ -222,6 +263,38 @@ export default function OrdersPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!action} onOpenChange={(o) => !o && !acting && setAction(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{action?.kind === "void" ? "Void order" : "Refund order"} {action?.order.id}</DialogTitle>
+            <DialogDescription>
+              {action?.kind === "void" ? "The order is cancelled and cannot be reopened." : "The refund is returned to the original payment method."} This is recorded in the audit log.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {action?.kind === "refund" && (
+              <div>
+                <p className="mb-1 text-xs text-muted-foreground">Refund amount (max {action.order.total})</p>
+                <Input className="rounded-xl border-0 bg-secondary" type="number" min="0" step="0.01" value={refundAmt} onChange={(e) => setRefundAmt(e.target.value)} />
+              </div>
+            )}
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Reason</p>
+              <Select value={reason} onValueChange={setReason}>
+                <SelectTrigger className="rounded-xl border-0 bg-secondary"><SelectValue placeholder="Select a reason" /></SelectTrigger>
+                <SelectContent>
+                  {(action?.kind === "void" ? ["Guest left", "Wrong order entered", "Kitchen error", "Duplicate order"] : ["Food quality", "Wrong item served", "Overcharged", "Guest complaint"]).map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="rounded-xl" disabled={acting} onClick={() => setAction(null)}>Cancel</Button>
+            <Button variant="destructive" className="rounded-xl" disabled={!reason || acting} onClick={confirmAction}>{acting && <Spinner />}{action?.kind === "void" ? "Void order" : "Issue refund"}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

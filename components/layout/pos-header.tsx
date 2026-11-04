@@ -11,8 +11,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { IconUser, IconSettings, IconLogout, IconBell, IconHistory } from "@tabler/icons-react"
+import { IconUser, IconSettings, IconLogout, IconBell, IconCheck, IconHistory } from "@tabler/icons-react"
 import { CommandSearch } from "@/components/layout/command-search"
+import { useAuth } from "@/components/auth/auth-provider"
+import { USERS, type Role } from "@/lib/permissions"
 import { useNotifications } from "@/components/notifications/notifications-provider"
 import { ROUTES } from "@/lib/routes"
 import { cn } from "@/lib/utils"
@@ -30,6 +32,8 @@ const navLinks = [
 export function PosHeader() {
   const pathname = usePathname()
   const { unreadCount, setPanelOpen } = useNotifications()
+  const { user, role, setRole } = useAuth()
+  const initials = user.name.split(" ").map((w) => w[0]).join("")
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between bg-card px-6 py-3 border-b border-border">
@@ -79,19 +83,19 @@ export function PosHeader() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-xl p-1.5 pr-3 hover:bg-secondary transition-colors">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-semibold">EA</AvatarFallback>
+                <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-semibold">{initials}</AvatarFallback>
               </Avatar>
               <div className="hidden lg:flex flex-col items-start">
-                <span className="text-sm font-medium text-foreground leading-tight">Emir Abiyyu</span>
-                <span className="text-[11px] text-muted-foreground leading-tight">Manager</span>
+                <span className="text-sm font-medium text-foreground leading-tight">{user.name}</span>
+                <span className="text-[11px] text-muted-foreground leading-tight">{user.label}</span>
               </div>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52 rounded-xl">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium text-foreground">Emir Abiyyu</p>
-                <p className="text-xs text-muted-foreground">emir@kansresto.com</p>
+                <p className="text-sm font-medium text-foreground">{user.name}</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -103,6 +107,15 @@ export function PosHeader() {
               <IconSettings className="h-4 w-4" />
               <span>Settings</span>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Switch role (demo)</DropdownMenuLabel>
+            {(Object.keys(USERS) as Role[]).map((r) => (
+              <DropdownMenuItem key={r} className="cursor-pointer gap-2 rounded-lg" onClick={() => setRole(r)}>
+                <span className="flex-1">{USERS[r].label}</span>
+                {r === role && <IconCheck className="h-4 w-4" />}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
             <Link href={ROUTES.auditLog}>
               <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer">
                 <IconHistory className="h-4 w-4" />

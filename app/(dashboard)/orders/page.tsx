@@ -10,6 +10,7 @@ import { useNotifications } from "@/components/notifications/notifications-provi
 import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
 import { delay } from "@/lib/mock"
+import { useAudit } from "@/components/audit/audit-provider"
 import { Spinner } from "@/components/ui/spinner"
 import { initialOrders } from "@/lib/data/orders"
 
@@ -18,6 +19,7 @@ const tabs = ["Active", "Completed", "All"]
 
 export default function OrdersPage() {
   const { toast } = useNotifications()
+  const { log } = useAudit()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<typeof initialOrders[0] | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -42,6 +44,7 @@ export default function OrdersPage() {
     setUpdatingId(orderId)
     await delay(600)
     setUpdatingId(null)
+    log({ category: "Order", action: `Order ${orderId} marked ${newStatus}` })
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)))
     if (selectedOrder?.id === orderId) setSelectedOrder((prev) => prev ? { ...prev, status: newStatus } : null)
     toast({ title: `Order ${orderId} Updated`, description: `Status changed to ${newStatus}` })

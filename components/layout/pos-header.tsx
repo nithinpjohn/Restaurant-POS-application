@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -12,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { IconSearch, IconUser, IconSettings, IconLogout, IconBell } from "@tabler/icons-react"
+import { IconUser, IconSettings, IconLogout, IconBell, IconHistory } from "@tabler/icons-react"
 import { CommandSearch } from "@/components/layout/command-search"
 import { useNotifications } from "@/components/notifications/notifications-provider"
 import { ROUTES } from "@/lib/routes"
@@ -28,15 +27,7 @@ const navLinks = [
   { href: ROUTES.reports, label: "Reports" },
 ]
 
-export function PosHeader({
-  searchPlaceholder,
-  searchValue,
-  onSearchChange,
-}: {
-  searchPlaceholder?: string
-  searchValue?: string
-  onSearchChange?: (value: string) => void
-}) {
+export function PosHeader() {
   const pathname = usePathname()
   const { unreadCount, setPanelOpen } = useNotifications()
 
@@ -71,17 +62,6 @@ export function PosHeader({
 
       <div className="flex items-center gap-3">
         <CommandSearch />
-        {onSearchChange && (
-          <div className="relative w-64">
-            <IconSearch className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pr-10 bg-secondary border-0 rounded-xl text-sm placeholder:text-muted-foreground"
-              placeholder={searchPlaceholder || "Find food or beverages"}
-              value={searchValue}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
-          </div>
-        )}
 
         <button
           aria-label={`Notifications (${unreadCount} unread)`}
@@ -123,6 +103,12 @@ export function PosHeader({
               <IconSettings className="h-4 w-4" />
               <span>Settings</span>
             </DropdownMenuItem>
+            <Link href={ROUTES.auditLog}>
+              <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer">
+                <IconHistory className="h-4 w-4" />
+                <span>Audit log</span>
+              </DropdownMenuItem>
+            </Link>
             <DropdownMenuSeparator />
             <Link href={ROUTES.login}>
               <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer text-destructive focus:text-destructive">

@@ -23,6 +23,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { useNotifications } from "@/components/notifications/notifications-provider"
 import { delay } from "@/lib/mock"
+import { PageSearch } from "@/components/layout/page-search"
+import { AllergenBadges } from "@/components/menu/allergen-badges"
+import { useAudit } from "@/components/audit/audit-provider"
 import { ROUTES } from "@/lib/routes"
 
 
@@ -30,6 +33,7 @@ const categories = ["All", "Appetizers", "Main Courses", "Desserts", "Drinks"]
 
 export default function MenuPage() {
   const { notify } = useNotifications()
+  const { log } = useAudit()
   const [menuItems, setMenuItems] = useState(initialMenuItems)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -59,6 +63,7 @@ export default function MenuPage() {
     setMenuItems([...menuItems, { ...newItem, id: newId }])
     setSaving(false)
     setIsAddDialogOpen(false)
+    log({ category: "Menu", action: "Menu item added", detail: `${newItem.name} · $${Number(newItem.price).toFixed(2)} · allergens: ${newItem.allergens?.join(", ") || "none"}` })
     notify({ title: "Menu item added", description: `${newItem.name} is now on the menu.`, href: ROUTES.menu })
   }
 
@@ -69,6 +74,7 @@ export default function MenuPage() {
     setMenuItems(menuItems.map((item) => (item.id === updatedItem.id ? updatedItem : item)))
     setIsEditDialogOpen(false)
     setEditingItem(null)
+    log({ category: "Menu", action: "Menu item updated", detail: `${updatedItem.name} · $${Number(updatedItem.price).toFixed(2)} · allergens: ${updatedItem.allergens?.join(", ") || "none"}` })
     notify({ title: "Menu item updated", description: `${updatedItem.name} was saved.`, type: "info" })
   }
 
@@ -79,6 +85,7 @@ export default function MenuPage() {
     setMenuItems(menuItems.filter((item) => item.id !== itemToDelete.id))
     setDeleting(false)
     setIsDeleteDialogOpen(false)
+    log({ category: "Menu", action: "Menu item deleted", detail: itemToDelete.name, flagged: true })
     notify({ title: "Menu item deleted", description: `${itemToDelete.name} was removed.`, type: "warning" })
     setItemToDelete(null)
   }
@@ -86,12 +93,13 @@ export default function MenuPage() {
   const toggleAvailability = (id: number, checked: boolean) => {
     setMenuItems(menuItems.map((item) => (item.id === id ? { ...item, available: checked } : item)))
     const name = menuItems.find((i) => i.id === id)?.name
+    log({ category: "Menu", action: `Marked ${checked ? "available" : "unavailable"}`, detail: name })
     notify({ title: `${name} ${checked ? "available" : "unavailable"}`, type: checked ? "success" : "warning" })
   }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <PosHeader searchPlaceholder="Search menu items..." searchValue={searchTerm} onSearchChange={setSearchTerm} />
+      <PosHeader />
 
       <main className="flex-1 p-6">
         <div className="flex items-center justify-between mb-6">
@@ -112,6 +120,8 @@ export default function MenuPage() {
             </DialogContent>
           </Dialog>
         </div>
+
+        <PageSearch value={searchTerm} onChange={setSearchTerm} placeholder="Search menu items…" className="mb-4" />
 
         {/* Category Filters */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
@@ -156,6 +166,7 @@ export default function MenuPage() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{item.description}</p>
+              <AllergenBadges allergens={item.allergens} className="mb-2" />
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground">${item.price.toFixed(2)}</span>
                 <div className="flex items-center gap-1.5">

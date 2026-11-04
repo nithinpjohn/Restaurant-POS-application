@@ -6,7 +6,10 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { IconMinus, IconPlus, IconTrash, IconInfoCircle } from "@tabler/icons-react"
+import { IconMinus, IconPlus, IconTrash, IconInfoCircle, IconNote, IconPlayerPause, IconPlayerPlay, IconX } from "@tabler/icons-react"
+import { toast as sonner } from "sonner"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { COUPONS, discountFor, type Coupon } from "@/lib/coupons"
 import { PosHeader } from "@/components/layout/pos-header"
 import {
   Dialog,
@@ -19,6 +22,13 @@ import {
 import { cn } from "@/lib/utils"
 import { ROUTES } from "@/lib/routes"
 import { delay } from "@/lib/mock"
+import { PageSearch } from "@/components/layout/page-search"
+import { AllergenBadges } from "@/components/menu/allergen-badges"
+import { useAudit } from "@/components/audit/audit-provider"
+import { initialMenuItems } from "@/lib/data/menu"
+import { ALLERGENS, conflicts } from "@/lib/allergens"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { IconAlertTriangle } from "@tabler/icons-react"
 import { Spinner } from "@/components/ui/spinner"
 import { useNotifications } from "@/components/notifications/notifications-provider"
 
@@ -34,11 +44,20 @@ const menuItems = [
   { id: 9, name: "Cheesecake", category: "Dessert", price: 6.99, originalPrice: null, discount: 0, available: 8, image: "/images/cheesecake.jpg" },
 ]
 
+const allergensByName = Object.fromEntries(initialMenuItems.map((i) => [i.name, i.allergens]))
+const allergensOf = (name: string): string[] => allergensByName[name] ?? []
+
+type CartLine = { id: number; name: string; price: number; quantity: number; image: string; mods?: string[]; notes?: string }
+type HeldOrder = { id: string; label: string; personCount: number; cart: CartLine[]; guestAllergies: string[]; coupon: Coupon | null; at: number }
+
+const MODIFIERS = ["No onions", "Extra cheese", "Spicy", "Less salt", "Gluten-free", "On the side"]
+const HELD_KEY = "kans-resto-held-orders"
+
 const categories = ["All", "Main Course", "Appetizer", "Dessert", "Beverages"]
 
 export default function NewOrderPage() {
   const router = useRouter()
-  const [cart, setCart] = useState<Array<{ id: number; name: string; price: number; quantity: number; image: string }>>([])
+  const [cart, setCart] = useState<CartLine[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [activeCategory, setActiveCategory] = useState("All")
   const [customerName, setCustomerName] = useState("Walk-in Customer")
@@ -63,7 +82,35 @@ export default function NewOrderPage() {
     return () => clearInterval(timer)
   }, [])
 
+  const { log } = useAudit()
+  const [guestAllergies, setGuestAllergies] = useState<string[]>([])
+  const [pending, setPending] = useState<{ item: typeof menuItems[0]; hit: string[] } | null>(null)
+  const [overrideCount, setOverrideCount] = useState(0)
+
+  const toggleGuestAllergy = (a: string) =>
+    setGuestAllergies((g) => (g.includes(a) ? g.filter((x) => x !== a) : [...g, a]))
+
+  // Ask before adding a dish that contains something the guest is allergic to.
   const addToCart = (item: typeof menuItems[0]) => {
+    const hit = conflicts(allergensOf(item.name), guestAllergies)
+    if (hit.length) setPending({ item, hit })
+    else commitAdd(item)
+  }
+
+  const confirmOverride = () => {
+    if (!pending) return
+    commitAdd(pending.item)
+    setOverrideCount((c) => c + 1)
+    log({ category: "Allergen", action: "Allergen warning overridden", detail: `${pending.item.name} added for ${customerName}; guest declared: ${pending.hit.join(", ")}`, flagged: true })
+    notify({ title: "Allergen warning overridden", description: `${pending.item.name} contains ${pending.hit.join(", ")}.`, type: "warning" })
+    setPending(null)
+  }
+
+  const cartConflicts = cart
+    .map((c) => ({ name: c.name, hit: conflicts(allergensOf(c.name), guestAllergies) }))
+    .filter((c) => c.hit.length)
+
+  const commitAdd = (item: typeof menuItems[0]) => {
     setCart((prev) => {
       const existing = prev.find((c) => c.id === item.id)
       if (existing) {
@@ -82,7 +129,81 @@ export default function NewOrderPage() {
   }
 
   const removeFromCart = (id: number) => {
+    const idx = cart.findIndex((c) => c.id === id)
+    const line = cart[idx]
+    if (!line) return
     setCart((prev) => prev.filter((c) => c.id !== id))
+    sonner(`${line.name} removed`, {
+      action: {
+        label: "Undo",
+        onClick: () => setCart((prev) => (prev.some((c) => c.id === line.id) ? prev : [...prev.slice(0, idx), line, ...prev.slice(idx)])),
+      },
+    })
+  }
+
+  const updateLine = (id: number, patch: Partial<CartLine>) =>
+    setCart((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+
+  const toggleMod = (id: number, mod: string) =>
+    setCart((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, mods: c.mods?.includes(mod) ? c.mods.filter((m) => m !== mod) : [...(c.mods ?? []), mod] } : c)),
+    )
+
+  // Coupons
+  const [coupon, setCoupon] = useState<Coupon | null>(null)
+  const [couponInput, setCouponInput] = useState("")
+  const [couponError, setCouponError] = useState("")
+
+  const applyCoupon = () => {
+    const code = couponInput.trim().toUpperCase()
+    const def = COUPONS[code]
+    if (!def) return setCouponError("Invalid coupon code")
+    if (subtotal < def.min) return setCouponError(`Needs a minimum of $${def.min.toFixed(2)}`)
+    setCoupon({ code, ...def })
+    setCouponInput("")
+    setCouponError("")
+    log({ category: "Order", action: "Coupon applied", detail: `${code} (${def.label})` })
+    notify({ title: `Coupon ${code} applied`, description: def.label, persist: false })
+  }
+
+  // Held (parked) orders, kept in this browser.
+  const [held, setHeld] = useState<HeldOrder[]>([])
+  const [heldOpen, setHeldOpen] = useState(false)
+  const [heldReady, setHeldReady] = useState(false)
+
+  useEffect(() => {
+    try { const raw = localStorage.getItem(HELD_KEY); if (raw) setHeld(JSON.parse(raw)) } catch {}
+    setHeldReady(true)
+  }, [])
+  useEffect(() => {
+    if (!heldReady) return
+    try { localStorage.setItem(HELD_KEY, JSON.stringify(held)) } catch {}
+  }, [held, heldReady])
+
+  const snapshot = (): HeldOrder => ({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    label: customerName, personCount, cart, guestAllergies, coupon, at: Date.now(),
+  })
+
+  const holdOrder = () => {
+    setHeld((h) => [snapshot(), ...h])
+    log({ category: "Order", action: "Order held", detail: `${customerName} · ${cart.length} items · $${total.toFixed(2)}` })
+    notify({ title: "Order held", description: `${customerName}'s order was parked.`, type: "info" })
+    setCart([]); setCoupon(null); setGuestAllergies([]); setOverrideCount(0)
+  }
+
+  const resumeOrder = (o: HeldOrder) => {
+    // Park whatever is on screen so nothing is lost.
+    setHeld((h) => [...(cart.length ? [snapshot()] : []), ...h.filter((x) => x.id !== o.id)])
+    setCart(o.cart); setCustomerName(o.label); setPersonCount(o.personCount)
+    setGuestAllergies(o.guestAllergies); setCoupon(o.coupon); setOverrideCount(0)
+    setHeldOpen(false)
+    log({ category: "Order", action: "Held order resumed", detail: `${o.label} · ${o.cart.length} items` })
+  }
+
+  const discardHeld = (o: HeldOrder) => {
+    setHeld((h) => h.filter((x) => x.id !== o.id))
+    log({ category: "Order", action: "Held order discarded", detail: `${o.label} · ${o.cart.length} items`, flagged: true })
   }
 
   const getCartQuantity = (id: number) => {
@@ -106,8 +227,9 @@ export default function NewOrderPage() {
     }
     return sum
   }, 0)
-  const tax = subtotal * 0.08
-  const total = subtotal + tax
+  const couponDiscount = discountFor(coupon, subtotal)
+  const tax = (subtotal - couponDiscount) * 0.08
+  const total = subtotal - couponDiscount + tax
 
   const { notify } = useNotifications()
   const [placing, setPlacing] = useState(false)
@@ -119,6 +241,7 @@ export default function NewOrderPage() {
     setOrderNumber(newOrderNumber)
     setPlacing(false)
     setIsOrderPlaced(true)
+    log({ category: "Order", action: `Order ${newOrderNumber} placed`, detail: `${customerName} · ${personCount} guests · $${total.toFixed(2)} · guest allergies: ${guestAllergies.join(", ") || "none"}${couponDiscount > 0 ? ` · coupon ${coupon?.code} -$${couponDiscount.toFixed(2)}` : ""}${cartConflicts.length ? ` · CONTAINS CONFLICTS: ${cartConflicts.map((c) => c.name).join(", ")}` : ""}`, flagged: cartConflicts.length > 0 || overrideCount > 0 })
     notify({ title: `Order ${newOrderNumber} placed`, description: `${customerName} · $${total.toFixed(2)}`, href: ROUTES.orders })
   }
 
@@ -126,15 +249,13 @@ export default function NewOrderPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <PosHeader
-        searchPlaceholder="Find food or beverages"
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-      />
+      <PosHeader />
 
       <div className="flex flex-1">
         {/* Left: Menu Content */}
         <main className="flex-1 overflow-y-auto p-6">
+          <PageSearch value={searchTerm} onChange={setSearchTerm} placeholder="Find food or beverages" className="mb-6" />
+
           {/* Special Discount Section */}
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -158,6 +279,7 @@ export default function NewOrderPage() {
                       </span>
                     </div>
                     <h3 className="font-medium text-sm text-foreground">{item.name}</h3>
+                    <AllergenBadges allergens={allergensOf(item.name)} highlight={guestAllergies} className="mt-1" />
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs font-medium bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">
                         {item.discount}%
@@ -230,6 +352,7 @@ export default function NewOrderPage() {
                       </span>
                     </div>
                     <h3 className="font-medium text-sm text-foreground">{item.name}</h3>
+                    <AllergenBadges allergens={allergensOf(item.name)} highlight={guestAllergies} className="mt-1" />
                     <p className="text-xs text-muted-foreground mt-0.5">Price per portion</p>
                     <div className="flex items-center justify-between mt-2">
                       <span className="font-semibold text-foreground">${item.price.toFixed(2)}</span>
@@ -301,9 +424,39 @@ export default function NewOrderPage() {
             </div>
           </div>
 
+          <div className="px-5 pb-3">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <IconAlertTriangle className="h-3.5 w-3.5 text-amber-600" /> Guest allergies
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {ALLERGENS.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  aria-pressed={guestAllergies.includes(a)}
+                  onClick={() => toggleGuestAllergy(a)}
+                  className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors", guestAllergies.includes(a) ? "border-red-500 bg-red-100 text-red-700" : "border-border bg-card text-muted-foreground hover:bg-secondary")}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Current Order */}
           <div className="flex-1 overflow-y-auto p-5">
-            <h3 className="font-semibold text-foreground mb-4">Current Order</h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-semibold text-foreground">Current Order</h3>
+              <Button variant="outline" size="sm" className="h-7 gap-1 rounded-full text-xs" onClick={() => setHeldOpen(true)}>
+                <IconPlayerPause className="h-3 w-3" /> Held ({held.length})
+              </Button>
+            </div>
+            {cartConflicts.length > 0 && (
+              <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                <p className="mb-1 flex items-center gap-1.5 font-semibold"><IconAlertTriangle className="h-4 w-4" /> Allergen conflict in this order</p>
+                {cartConflicts.map((c) => <p key={c.name}>{c.name}: {c.hit.join(", ")}</p>)}
+              </div>
+            )}
             {cart.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">
                 No items added yet. Select items from the menu.
@@ -317,10 +470,16 @@ export default function NewOrderPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-medium text-foreground truncate">{item.name}</h4>
+                      {conflicts(allergensOf(item.name), guestAllergies).length > 0 && (
+                        <AllergenBadges allergens={conflicts(allergensOf(item.name), guestAllergies)} highlight={guestAllergies} />
+                      )}
                       <p className="text-sm font-semibold" style={{ color: "hsl(var(--success))" }}>
                         ${(item.price * item.quantity).toFixed(2)}{" "}
                         <span className="text-xs text-muted-foreground font-normal">x{item.quantity}</span>
                       </p>
+                      {(item.mods?.length || item.notes) ? (
+                        <p className="text-[11px] text-muted-foreground truncate">{[...(item.mods ?? []), item.notes].filter(Boolean).join(" · ")}</p>
+                      ) : null}
                       <div className="flex items-center gap-2 mt-1">
                         <button
                           onClick={() => updateQuantity(item.id, -1)}
@@ -337,7 +496,37 @@ export default function NewOrderPage() {
                         </button>
                       </div>
                     </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button aria-label={`Customize ${item.name}`} className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                          <IconNote className="h-4 w-4" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-64 space-y-3 rounded-xl">
+                        <p className="text-sm font-medium">Customize {item.name}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {MODIFIERS.map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              aria-pressed={item.mods?.includes(m)}
+                              onClick={() => toggleMod(item.id, m)}
+                              className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors", item.mods?.includes(m) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary")}
+                            >
+                              {m}
+                            </button>
+                          ))}
+                        </div>
+                        <Input
+                          className="h-9 rounded-xl border-0 bg-secondary text-sm"
+                          placeholder="Note for the kitchen…"
+                          value={item.notes ?? ""}
+                          onChange={(e) => updateLine(item.id, { notes: e.target.value })}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <button
+                      aria-label={`Remove ${item.name}`}
                       onClick={() => removeFromCart(item.id)}
                       className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
                     >
@@ -353,6 +542,26 @@ export default function NewOrderPage() {
           {cart.length > 0 && (
             <div className="p-5 border-t border-border">
               <h3 className="font-semibold text-foreground mb-3">Payment Summary</h3>
+              {coupon ? (
+                <div className="mb-3 flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                  <span><strong>{coupon.code}</strong> · {coupon.label}{couponDiscount === 0 && " (minimum not met)"}</span>
+                  <button aria-label="Remove coupon" onClick={() => setCoupon(null)}><IconX className="h-3.5 w-3.5" /></button>
+                </div>
+              ) : (
+                <div className="mb-3">
+                  <div className="flex gap-2">
+                    <Input
+                      className="h-9 rounded-xl border-0 bg-secondary text-sm uppercase"
+                      placeholder="Coupon code"
+                      value={couponInput}
+                      onChange={(e) => { setCouponInput(e.target.value); setCouponError("") }}
+                      onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
+                    />
+                    <Button variant="outline" className="h-9 rounded-xl" disabled={!couponInput.trim()} onClick={applyCoupon}>Apply</Button>
+                  </div>
+                  {couponError && <p className="mt-1 text-xs text-destructive">{couponError}</p>}
+                </div>
+              )}
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
@@ -364,6 +573,12 @@ export default function NewOrderPage() {
                     <span className="text-destructive">-${discountTotal.toFixed(2)}</span>
                   </div>
                 )}
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Coupon ({coupon?.code})</span>
+                    <span className="text-destructive">-${couponDiscount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total tax</span>
                   <span className="text-foreground">${tax.toFixed(2)}</span>
@@ -373,14 +588,19 @@ export default function NewOrderPage() {
                   <span style={{ color: "hsl(var(--success))" }}>${total.toFixed(2)}</span>
                 </div>
               </div>
+              <div className="mt-4 flex gap-2">
+              <Button variant="outline" className="h-12 gap-1.5 rounded-xl" disabled={placing} onClick={holdOrder}>
+                <IconPlayerPause className="h-4 w-4" /> Hold
+              </Button>
               <Button
-                className="w-full mt-4 h-12 rounded-xl text-sm font-semibold"
+                className="h-12 flex-1 rounded-xl text-sm font-semibold"
                 onClick={handlePlaceOrder}
                 disabled={placing}
               >
                 {placing && <Spinner />}
                 {placing ? "Placing order…" : "Order Now"}
               </Button>
+              </div>
             </div>
           )}
         </aside>
@@ -411,6 +631,8 @@ export default function NewOrderPage() {
               className="sm:flex-1 rounded-xl"
               onClick={() => {
                 setCart([])
+                setOverrideCount(0)
+                setCoupon(null)
                 setIsOrderPlaced(false)
               }}
             >
@@ -422,6 +644,48 @@ export default function NewOrderPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={heldOpen} onOpenChange={setHeldOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Held orders</DialogTitle>
+            <DialogDescription>Parked orders are saved in this browser. Resuming one parks the current cart.</DialogDescription>
+          </DialogHeader>
+          {held.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No held orders.</p>
+          ) : (
+            <div className="max-h-80 space-y-2 overflow-y-auto">
+              {held.map((o) => (
+                <div key={o.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{o.label} · {o.personCount} guests</p>
+                    <p className="text-xs text-muted-foreground" suppressHydrationWarning>{o.cart.reduce((n, c) => n + c.quantity, 0)} items · {new Date(o.at).toLocaleTimeString()}</p>
+                  </div>
+                  <Button size="sm" className="h-8 gap-1 rounded-full text-xs" onClick={() => resumeOrder(o)}><IconPlayerPlay className="h-3 w-3" /> Resume</Button>
+                  <button aria-label="Discard held order" className="text-muted-foreground hover:text-destructive" onClick={() => discardHeld(o)}><IconTrash className="h-4 w-4" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-700">
+              <IconAlertTriangle className="h-5 w-5" /> Allergen warning
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pending?.item.name} contains <strong>{pending?.hit.join(", ")}</strong>, which {customerName} declared an allergy to. Adding it will be recorded in the audit log.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Don't add</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 text-white hover:bg-red-700" onClick={confirmOverride}>Add anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

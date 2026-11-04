@@ -7,6 +7,7 @@ import {
   IconCirclePlus,
   IconCreditCard,
   IconFileText,
+  IconHistory,
   IconLayoutDashboard,
   IconReceipt,
   IconSearch,
@@ -26,6 +27,7 @@ const suggestions = [
   { label: "Add menu item", icon: IconToolsKitchen2, href: ROUTES.menu },
   { label: "Process a payment", icon: IconCreditCard, href: ROUTES.payment },
   { label: "View notifications", icon: IconBell, href: ROUTES.notifications },
+  { label: "View audit log", icon: IconHistory, href: ROUTES.auditLog },
 ]
 const pages = [
   { label: "Dashboard", icon: IconLayoutDashboard, href: ROUTES.dashboard },

@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { IconPlus, IconTrash, IconUsers, IconClock, IconUserCircle } from "@tabler/icons-react"
+import { useAudit } from "@/components/audit/audit-provider"
 import { useNotifications } from "@/components/notifications/notifications-provider"
 import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
@@ -43,6 +44,7 @@ const sampleOrders: Record<string, { id: string; items: { name: string; quantity
 
 export default function TablesPage() {
   const { toast } = useNotifications()
+  const { log } = useAudit()
   const [tables, setTables] = useState(initialTables)
   const [isAddTableOpen, setIsAddTableOpen] = useState(false)
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false)
@@ -68,6 +70,7 @@ export default function TablesPage() {
     if (tables.some((t) => t.number === num)) { toast({ title: `Table ${num} already exists`, variant: "destructive" }); return }
     setTables([...tables, { id: Math.max(...tables.map((t) => t.id), 0) + 1, number: num, status: "available", seats, time: "-", server: "-", order: "-" }])
     setIsAddTableOpen(false)
+    log({ category: "Table", action: "Table added", detail: `Table ${num} · ${seats} seats` })
     toast({ title: "Table Added", description: `Table ${num} has been added.` })
   }
 
@@ -78,6 +81,7 @@ export default function TablesPage() {
 
   const handleClearTable = (table: typeof initialTables[0]) => {
     setTables(tables.map((t) => (t.id === table.id ? { ...t, status: "available", time: "-", server: "-", order: "-" } : t)))
+    log({ category: "Table", action: "Table cleared", detail: `Table ${table.number}` })
     toast({ title: "Table Cleared", description: `Table ${table.number} is now available.` })
   }
 
@@ -89,6 +93,7 @@ export default function TablesPage() {
     if (!guestInfo.server.trim()) { toast({ title: "Server required", variant: "destructive" }); return }
     setTables(tables.map((t) => (t.id === selectedTable?.id ? { ...t, status: "occupied", time: "0 min", server: guestInfo.server, order: "-" } : t)))
     setIsSeatGuestsOpen(false)
+    log({ category: "Table", action: "Guests seated", detail: `Table ${selectedTable?.number} · ${guests} guests · server ${guestInfo.server}` })
     toast({ title: "Guests Seated", description: `${guests} guests at Table ${selectedTable?.number}.` })
   }
 
@@ -98,7 +103,7 @@ export default function TablesPage() {
   }
 
   const handleDeleteTable = () => {
-    if (tableToDelete) { setTables(tables.filter((t) => t.id !== tableToDelete.id)); setIsDeleteTableOpen(false); toast({ title: "Table Deleted" }) }
+    if (tableToDelete) { setTables(tables.filter((t) => t.id !== tableToDelete.id)); setIsDeleteTableOpen(false); log({ category: "Table", action: "Table deleted", detail: `Table ${tableToDelete.number}`, flagged: true }); toast({ title: "Table Deleted" }) }
   }
 
   return (

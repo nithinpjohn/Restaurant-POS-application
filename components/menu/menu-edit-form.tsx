@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { DialogFooter } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
+import { ALLERGENS } from "@/lib/allergens"
+import { cn } from "@/lib/utils"
 
 export function MenuEditForm({ item = undefined, onSubmit, onCancel, submitting = false }) {
   const [formData, setFormData] = useState({
@@ -18,7 +20,11 @@ export function MenuEditForm({ item = undefined, onSubmit, onCancel, submitting 
     description: item?.description || "",
     image: item?.image || "/placeholder.svg?height=100&width=100",
     available: item?.available !== undefined ? item.available : true,
+    allergens: (item?.allergens || []) as string[],
   })
+
+  const toggleAllergen = (a: string) =>
+    setFormData((f) => ({ ...f, allergens: f.allergens.includes(a) ? f.allergens.filter((x) => x !== a) : [...f.allergens, a] }))
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -136,6 +142,22 @@ export function MenuEditForm({ item = undefined, onSubmit, onCancel, submitting 
             <span className="text-sm text-muted-foreground">
               {formData.available ? "Item is available" : "Item is unavailable"}
             </span>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 items-start gap-4">
+          <Label className="pt-1 text-right">Allergens</Label>
+          <div className="col-span-3 flex flex-wrap gap-1.5">
+            {ALLERGENS.map((a) => (
+              <button
+                key={a}
+                type="button"
+                aria-pressed={formData.allergens.includes(a)}
+                onClick={() => toggleAllergen(a)}
+                className={cn("rounded-full border px-3 py-1 text-xs font-medium transition-colors", formData.allergens.includes(a) ? "border-amber-500 bg-amber-100 text-amber-800" : "border-border bg-card text-muted-foreground hover:bg-secondary")}
+              >
+                {a}
+              </button>
+            ))}
           </div>
         </div>
       </div>

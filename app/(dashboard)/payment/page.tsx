@@ -9,6 +9,7 @@ import { IconCreditCard, IconCircleCheck } from "@tabler/icons-react"
 import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
 import { delay } from "@/lib/mock"
+import { useAudit } from "@/components/audit/audit-provider"
 import { Spinner } from "@/components/ui/spinner"
 import { useNotifications } from "@/components/notifications/notifications-provider"
 
@@ -24,6 +25,7 @@ export default function PaymentPage() {
   const [isPaid, setIsPaid] = useState(false)
   const [processing, setProcessing] = useState(false)
   const { notify } = useNotifications()
+  const { log } = useAudit()
 
   const subtotal = 38.50
   const tax = subtotal * 0.08
@@ -153,6 +155,7 @@ export default function PaymentPage() {
                 await delay(1200)
                 setProcessing(false)
                 setIsPaid(true)
+                log({ category: "Payment", action: "Payment processed", detail: `$${total.toFixed(2)} · receipt #12345` })
                 notify({ title: "Payment successful", description: `$${total.toFixed(2)} received. Receipt #12345 sent.` })
               }}>
                 {processing ? <Spinner /> : <IconCreditCard className="h-4 w-4" />}

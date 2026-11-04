@@ -8,4 +8,5 @@ export const ROUTES = {
   payment: "/payment",
   reports: "/reports",
   notifications: "/notifications",
+  auditLog: "/audit-log",
 } as const

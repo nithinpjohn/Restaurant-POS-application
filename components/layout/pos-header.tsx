@@ -12,17 +12,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Search, User, Settings, LogOut, Bell } from "lucide-react"
+import { IconSearch, IconUser, IconSettings, IconLogout, IconBell } from "@tabler/icons-react"
+import { ROUTES } from "@/lib/routes"
 import { cn } from "@/lib/utils"
 
 const navLinks = [
-  { href: "/", label: "Dashboard" },
-  { href: "/new-order", label: "New Order" },
-  { href: "/orders", label: "Orders" },
-  { href: "/menu", label: "Menu" },
-  { href: "/tables", label: "Tables" },
-  { href: "/payment", label: "Payments" },
-  { href: "/reports", label: "Reports" },
+  { href: ROUTES.dashboard, label: "Dashboard" },
+  { href: ROUTES.newOrder, label: "New Order" },
+  { href: ROUTES.orders, label: "Orders" },
+  { href: ROUTES.menu, label: "Menu" },
+  { href: ROUTES.tables, label: "Tables" },
+  { href: ROUTES.payment, label: "Payments" },
+  { href: ROUTES.reports, label: "Reports" },
 ]
 
 export function PosHeader({
@@ -39,7 +40,7 @@ export function PosHeader({
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between bg-card px-6 py-3 border-b border-border">
       <div className="flex items-center gap-8">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href={ROUTES.dashboard} className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-primary-foreground">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -68,7 +69,7 @@ export function PosHeader({
       <div className="flex items-center gap-3">
         {onSearchChange && (
           <div className="relative w-64">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <IconSearch className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               className="pr-10 bg-secondary border-0 rounded-xl text-sm placeholder:text-muted-foreground"
               placeholder={searchPlaceholder || "Find food or beverages"}
@@ -79,7 +80,7 @@ export function PosHeader({
         )}
 
         <button className="relative h-9 w-9 flex items-center justify-center rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors">
-          <Bell className="h-4 w-4" />
+          <IconBell className="h-4 w-4" />
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-500" />
         </button>
 
@@ -104,17 +105,17 @@ export function PosHeader({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer">
-              <User className="h-4 w-4" />
+              <IconUser className="h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
             <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer">
-              <Settings className="h-4 w-4" />
+              <IconSettings className="h-4 w-4" />
               <span>Settings</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <Link href="/login">
+            <Link href={ROUTES.login}>
               <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer text-destructive focus:text-destructive">
-                <LogOut className="h-4 w-4" />
+                <IconLogout className="h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
             </Link>

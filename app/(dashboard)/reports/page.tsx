@@ -3,9 +3,9 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Download, ChevronDown, TrendingUp, TrendingDown } from "lucide-react"
+import { IconDownload, IconChevronDown, IconTrendingUp, IconTrendingDown } from "@tabler/icons-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { PosHeader } from "@/components/pos-header"
+import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Area, AreaChart,
@@ -86,7 +86,7 @@ export default function ReportsPage() {
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="rounded-xl gap-2 text-sm">
-                  <Download className="h-4 w-4" /> Export <ChevronDown className="h-3 w-3" />
+                  <IconDownload className="h-4 w-4" /> Export <IconChevronDown className="h-3 w-3" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-40" align="end">
@@ -128,7 +128,7 @@ export default function ReportsPage() {
                   <p className="text-sm text-muted-foreground">{kpi.label}</p>
                   <p className="text-2xl font-bold text-foreground mt-1">{kpi.value}</p>
                   <div className="flex items-center gap-1 mt-1">
-                    {kpi.up ? <TrendingUp className="h-3 w-3 text-emerald-600" /> : <TrendingDown className="h-3 w-3 text-destructive" />}
+                    {kpi.up ? <IconTrendingUp className="h-3 w-3 text-emerald-600" /> : <IconTrendingDown className="h-3 w-3 text-destructive" />}
                     <span className={`text-xs ${kpi.up ? "text-emerald-600" : "text-destructive"}`}>{kpi.change}</span>
                   </div>
                 </div>
@@ -289,7 +289,7 @@ export default function ReportsPage() {
                   <p className="text-sm text-muted-foreground">{kpi.label}</p>
                   <p className="text-2xl font-bold text-foreground mt-1">{kpi.value}</p>
                   <div className="flex items-center gap-1 mt-1">
-                    {kpi.up ? <TrendingUp className="h-3 w-3 text-emerald-600" /> : <TrendingDown className="h-3 w-3 text-destructive" />}
+                    {kpi.up ? <IconTrendingUp className="h-3 w-3 text-emerald-600" /> : <IconTrendingDown className="h-3 w-3 text-destructive" />}
                     <span className={`text-xs ${kpi.up ? "text-emerald-600" : "text-destructive"}`}>{kpi.change}</span>
                   </div>
                 </div>

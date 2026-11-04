@@ -13,9 +13,9 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Plus, Trash2, Users, Clock, UserCircle } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
-import { PosHeader } from "@/components/pos-header"
+import { IconPlus, IconTrash, IconUsers, IconClock, IconUserCircle } from "@tabler/icons-react"
+import { useToast } from "@/hooks/use-toast"
+import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
 
 const initialTables = [
@@ -109,7 +109,7 @@ export default function TablesPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-semibold text-foreground">Table Management</h1>
           <Button className="rounded-xl gap-2" onClick={handleAddTableClick}>
-            <Plus className="h-4 w-4" />
+            <IconPlus className="h-4 w-4" />
             Add Table
           </Button>
         </div>
@@ -127,7 +127,7 @@ export default function TablesPage() {
                 className="absolute top-3 right-3 text-muted-foreground hover:text-destructive transition-colors"
                 onClick={() => handleDeleteTableClick(table)}
               >
-                <Trash2 className="h-4 w-4" />
+                <IconTrash className="h-4 w-4" />
               </button>
               <div className="flex items-center gap-3 mb-3">
                 <div className={cn(
@@ -148,9 +148,9 @@ export default function TablesPage() {
               </div>
 
               <div className="space-y-1.5 text-xs text-muted-foreground mb-4">
-                <div className="flex items-center gap-2"><Users className="h-3 w-3" /> {table.seats} seats</div>
-                <div className="flex items-center gap-2"><Clock className="h-3 w-3" /> {table.time}</div>
-                <div className="flex items-center gap-2"><UserCircle className="h-3 w-3" /> {table.server}</div>
+                <div className="flex items-center gap-2"><IconUsers className="h-3 w-3" /> {table.seats} seats</div>
+                <div className="flex items-center gap-2"><IconClock className="h-3 w-3" /> {table.time}</div>
+                <div className="flex items-center gap-2"><IconUserCircle className="h-3 w-3" /> {table.server}</div>
               </div>
 
               {table.status === "occupied" ? (

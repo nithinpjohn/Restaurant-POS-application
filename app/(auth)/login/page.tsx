@@ -1,11 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { ROUTES } from "@/lib/routes"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Eye, EyeOff, Lock, Mail } from "lucide-react"
+import { IconEye, IconEyeOff, IconLock, IconMail } from "@tabler/icons-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -22,7 +23,7 @@ export default function LoginPage() {
 
     setTimeout(() => {
       if (email && password) {
-        router.push("/")
+        router.push(ROUTES.dashboard)
       } else {
         setError("Please enter your email and password.")
         setLoading(false)
@@ -86,7 +87,7 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <label htmlFor="email" className="text-sm font-medium text-foreground">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <IconMail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
@@ -104,7 +105,7 @@ export default function LoginPage() {
                 <button type="button" className="text-xs text-blue-500 hover:text-blue-600 font-medium">Forgot password?</button>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <IconLock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -118,7 +119,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
                 </button>
               </div>
             </div>

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CreditCard, CheckCircle } from "lucide-react"
-import { PosHeader } from "@/components/pos-header"
+import { IconCreditCard, IconCircleCheck } from "@tabler/icons-react"
+import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
 
 const tipOptions = [
@@ -144,7 +144,7 @@ export default function PaymentPage() {
               </div>
 
               <Button className="w-full h-12 rounded-xl gap-2 text-sm font-semibold" onClick={() => setIsPaid(true)}>
-                <CreditCard className="h-4 w-4" />
+                <IconCreditCard className="h-4 w-4" />
                 Process Payment - ${total.toFixed(2)}
               </Button>
             </div>
@@ -153,7 +153,7 @@ export default function PaymentPage() {
 
         {isPaid && (
           <div className="mt-6 max-w-4xl bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-4">
-            <CheckCircle className="h-8 w-8 text-emerald-600 shrink-0" />
+            <IconCircleCheck className="h-8 w-8 text-emerald-600 shrink-0" />
             <div>
               <h3 className="font-medium text-emerald-900">Payment Successful</h3>
               <p className="text-sm text-emerald-700">Receipt #12345 has been sent to the customer.</p>

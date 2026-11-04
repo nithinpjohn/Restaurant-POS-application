@@ -6,8 +6,8 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Minus, Plus, Trash2, Info } from "lucide-react"
-import { PosHeader } from "@/components/pos-header"
+import { IconMinus, IconPlus, IconTrash, IconInfoCircle } from "@tabler/icons-react"
+import { PosHeader } from "@/components/layout/pos-header"
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { ROUTES } from "@/lib/routes"
 
 const menuItems = [
   { id: 1, name: "Caesar Salad", category: "Appetizer", price: 8.99, originalPrice: 11.5, discount: 15, available: 12, image: "/images/caesar-salad.jpg" },
@@ -163,14 +164,14 @@ export default function NewOrderPage() {
                             onClick={() => updateQuantity(item.id, -1)}
                             className="h-7 w-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors"
                           >
-                            <Minus className="h-3 w-3" />
+                            <IconMinus className="h-3 w-3" />
                           </button>
                           <span className="text-sm font-medium w-4 text-center">{qty}</span>
                           <button
                             onClick={() => updateQuantity(item.id, 1)}
                             className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
                           >
-                            <Plus className="h-3 w-3" />
+                            <IconPlus className="h-3 w-3" />
                           </button>
                         </div>
                       ) : (
@@ -228,14 +229,14 @@ export default function NewOrderPage() {
                             onClick={() => updateQuantity(item.id, -1)}
                             className="h-7 w-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors"
                           >
-                            <Minus className="h-3 w-3" />
+                            <IconMinus className="h-3 w-3" />
                           </button>
                           <span className="text-sm font-medium w-4 text-center">{qty}</span>
                           <button
                             onClick={() => updateQuantity(item.id, 1)}
                             className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
                           >
-                            <Plus className="h-3 w-3" />
+                            <IconPlus className="h-3 w-3" />
                           </button>
                         </div>
                       ) : (
@@ -257,7 +258,7 @@ export default function NewOrderPage() {
           <div className="p-5 border-b border-border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground">Customer Information</h3>
-              <Info className="h-4 w-4 text-muted-foreground" />
+              <IconInfoCircle className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="space-y-3">
               <div>
@@ -276,14 +277,14 @@ export default function NewOrderPage() {
                     onClick={() => setPersonCount(Math.max(1, personCount - 1))}
                     className="h-7 w-7 rounded-full border border-border bg-card flex items-center justify-center text-muted-foreground hover:bg-background transition-colors"
                   >
-                    <Minus className="h-3 w-3" />
+                    <IconMinus className="h-3 w-3" />
                   </button>
                   <span className="text-sm font-medium w-4 text-center">{personCount}</span>
                   <button
                     onClick={() => setPersonCount(personCount + 1)}
                     className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
                   >
-                    <Plus className="h-3 w-3" />
+                    <IconPlus className="h-3 w-3" />
                   </button>
                 </div>
               </div>
@@ -315,14 +316,14 @@ export default function NewOrderPage() {
                           onClick={() => updateQuantity(item.id, -1)}
                           className="h-6 w-6 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors"
                         >
-                          <Minus className="h-3 w-3" />
+                          <IconMinus className="h-3 w-3" />
                         </button>
                         <span className="text-xs font-medium w-4 text-center">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.id, 1)}
                           className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
                         >
-                          <Plus className="h-3 w-3" />
+                          <IconPlus className="h-3 w-3" />
                         </button>
                       </div>
                     </div>
@@ -330,7 +331,7 @@ export default function NewOrderPage() {
                       onClick={() => removeFromCart(item.id)}
                       className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <IconTrash className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
@@ -403,7 +404,7 @@ export default function NewOrderPage() {
             >
               New Order
             </Button>
-            <Button className="sm:flex-1 rounded-xl" onClick={() => router.push("/orders")}>
+            <Button className="sm:flex-1 rounded-xl" onClick={() => router.push(ROUTES.orders)}>
               View All Orders
             </Button>
           </DialogFooter>

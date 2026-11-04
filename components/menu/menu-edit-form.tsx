@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { DialogFooter } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 
-export function MenuEditForm({ item, onSubmit, onCancel }) {
+export function MenuEditForm({ item = undefined, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     name: item?.name || "",
     category: item?.category || "",

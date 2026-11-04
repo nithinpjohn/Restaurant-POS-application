@@ -5,9 +5,9 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Search, Plus } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
-import { PosHeader } from "@/components/pos-header"
+import { IconSearch, IconPlus } from "@tabler/icons-react"
+import { useToast } from "@/hooks/use-toast"
+import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
 
 const initialOrders = [
@@ -68,7 +68,7 @@ export default function OrdersPage() {
           <h1 className="text-xl font-semibold text-foreground">Order Management</h1>
           <div className="flex items-center gap-3">
             <div className="relative w-64">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <IconSearch className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 className="pr-10 bg-secondary border-0 rounded-xl text-sm"
                 placeholder="Search orders..."
@@ -78,7 +78,7 @@ export default function OrdersPage() {
             </div>
             <Button asChild className="rounded-xl gap-2">
               <Link href="/new-order">
-                <Plus className="h-4 w-4" />
+                <IconPlus className="h-4 w-4" />
                 New Order
               </Link>
             </Button>

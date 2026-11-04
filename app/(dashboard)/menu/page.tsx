@@ -13,10 +13,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Edit, Plus, Trash2 } from "lucide-react"
-import { MenuEditForm } from "@/components/menu-edit-form"
+import { IconEdit, IconPlus, IconTrash } from "@tabler/icons-react"
+import { MenuEditForm } from "@/components/menu/menu-edit-form"
 import { Switch } from "@/components/ui/switch"
-import { PosHeader } from "@/components/pos-header"
+import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
 
 const initialMenuItems = [
@@ -85,7 +85,7 @@ export default function MenuPage() {
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="rounded-xl gap-2">
-                <Plus className="h-4 w-4" />
+                <IconPlus className="h-4 w-4" />
                 Add Item
               </Button>
             </DialogTrigger>
@@ -143,7 +143,7 @@ export default function MenuPage() {
                     className="h-7 text-xs rounded-full px-3 gap-1"
                     onClick={() => { setEditingItem(item); setIsEditDialogOpen(true) }}
                   >
-                    <Edit className="h-3 w-3" />
+                    <IconEdit className="h-3 w-3" />
                     Edit
                   </Button>
                   <Button
@@ -152,7 +152,7 @@ export default function MenuPage() {
                     className="h-7 w-7 rounded-full p-0 text-destructive border-destructive/30 hover:bg-destructive/10"
                     onClick={() => { setItemToDelete(item); setIsDeleteDialogOpen(true) }}
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <IconTrash className="h-3 w-3" />
                   </Button>
                 </div>
               </div>

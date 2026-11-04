@@ -2,14 +2,14 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { PosHeader } from "@/components/pos-header"
-import { PlusCircle, Utensils, CreditCard, FileText, ChevronRight, TrendingUp, TrendingDown } from "lucide-react"
+import { PosHeader } from "@/components/layout/pos-header"
+import { IconCirclePlus, IconToolsKitchen2, IconCreditCard, IconFileText, IconChevronRight, IconTrendingUp, IconTrendingDown } from "@tabler/icons-react"
 
 const quickActions = [
-  { href: "/new-order", icon: PlusCircle, label: "New Order", description: "Create a new customer order" },
-  { href: "/menu", icon: Utensils, label: "Manage Menu", description: "Update your restaurant menu" },
-  { href: "/payment", icon: CreditCard, label: "Process Payment", description: "Handle customer payments" },
-  { href: "/reports", icon: FileText, label: "View Reports", description: "Check sales and inventory" },
+  { href: "/new-order", icon: IconCirclePlus, label: "New Order", description: "Create a new customer order" },
+  { href: "/menu", icon: IconToolsKitchen2, label: "Manage Menu", description: "Update your restaurant menu" },
+  { href: "/payment", icon: IconCreditCard, label: "Process Payment", description: "Handle customer payments" },
+  { href: "/reports", icon: IconFileText, label: "View Reports", description: "Check sales and inventory" },
 ]
 
 const recentOrders = [
@@ -87,9 +87,9 @@ export default function Dashboard() {
                     <p className="text-sm font-medium text-foreground">{metric.label}</p>
                     <div className="flex items-center gap-1 mt-0.5">
                       {metric.up ? (
-                        <TrendingUp className="h-3 w-3 text-emerald-600" />
+                        <IconTrendingUp className="h-3 w-3 text-emerald-600" />
                       ) : (
-                        <TrendingDown className="h-3 w-3 text-destructive" />
+                        <IconTrendingDown className="h-3 w-3 text-destructive" />
                       )}
                       <span className={`text-xs ${metric.up ? "text-emerald-600" : "text-destructive"}`}>
                         {metric.change}
@@ -107,7 +107,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground">Recent Orders</h3>
               <Link href="/orders" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
-                View All <ChevronRight className="h-3 w-3" />
+                View All <IconChevronRight className="h-3 w-3" />
               </Link>
             </div>
             <div className="space-y-3">
@@ -138,7 +138,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground">Popular Items</h3>
               <Link href="/menu" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
-                View All <ChevronRight className="h-3 w-3" />
+                View All <IconChevronRight className="h-3 w-3" />
               </Link>
             </div>
             <div className="space-y-4">

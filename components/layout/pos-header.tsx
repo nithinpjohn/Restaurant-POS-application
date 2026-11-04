@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { IconUser, IconSettings, IconLogout, IconBell, IconCheck, IconClockHour4, IconHistory, IconTemperature } from "@tabler/icons-react"
 import { CommandSearch } from "@/components/layout/command-search"
+import { SyncStatus } from "@/components/sync/sync-status"
 import { useAuth } from "@/components/auth/auth-provider"
 import { USERS, type Role } from "@/lib/permissions"
 import { useNotifications } from "@/components/notifications/notifications-provider"
@@ -67,6 +68,8 @@ export function PosHeader() {
 
       <div className="flex items-center gap-3">
         <CommandSearch />
+
+        <SyncStatus />
 
         <button
           aria-label={`Notifications (${unreadCount} unread)`}

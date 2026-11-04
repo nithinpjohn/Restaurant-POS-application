@@ -15,6 +15,7 @@ import { useAudit } from "@/components/audit/audit-provider"
 import { useNotifications } from "@/components/notifications/notifications-provider"
 import { OpenShiftDialog } from "@/components/shift/open-shift-dialog"
 import { useShift } from "@/components/shift/shift-provider"
+import { useSync } from "@/components/sync/sync-provider"
 import { useOrders } from "@/components/orders/orders-provider"
 import Link from "next/link"
 import { ROUTES } from "@/lib/routes"
@@ -53,6 +54,7 @@ export default function PaymentPage() {
   const { log } = useAudit()
   const { orders, setOrders } = useOrders()
   const { shift, recordSale } = useShift()
+  const { online, enqueue } = useSync()
 
   const openOrders = orders.filter((o) => !o.paid && !["Completed", "Voided", "Refunded"].includes(o.status))
   const [pickedId, setOrderId] = useState("")
@@ -130,6 +132,7 @@ export default function PaymentPage() {
   const pay = async () => {
     if (!current || amountMismatch || !shift) return
     setError("")
+    if (!online && method !== "cash") return setError("Card, gift card and mobile payments need a connection. Take cash instead.")
     const digits = cardNo.replace(/\s/g, "")
     if (method === "card") {
       if (!luhn(digits)) return setError("Enter a valid card number (try 4242 4242 4242 4242).")
@@ -158,6 +161,7 @@ export default function PaymentPage() {
       const earned = Math.floor(subtotal / 100)
       setPoints(points - loyalty + earned)
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, paid: true } : o)))
+      enqueue("sale", `sale-${order.id}`, { orderId: order.id, total: payable, payments: next.map((p) => ({ method: p.method, cents: p.cents })), paidAt: Date.now() })
       recordSale({ orderId: order.id, table: order.table, items, subtotal, taxLines, tip, loyalty, total: payable, payments: next.map((p) => ({ method: p.method, cents: p.cents })) })
       setPaidAt(Date.now())
       if (tip > 0 && poolTips) log({ category: "Payment", action: "Tip pooled", detail: `${fmt(tip)} shared by ${staff} staff (${fmt(Math.floor(tip / staff))} each)` })
@@ -338,7 +342,7 @@ export default function PaymentPage() {
                 <h3 className="mb-4 font-semibold text-foreground">Payment Method{current && parts.length > 1 ? ` · ${current.label}` : ""}</h3>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-2">
-                    {METHODS.map((m) => <button key={m.id} onClick={() => { setMethod(m.id); setError("") }} className={chip(method === m.id)}>{m.label}</button>)}
+                    {METHODS.map((m) => <button key={m.id} disabled={!online && m.id !== "cash"} onClick={() => { setMethod(m.id); setError("") }} className={cn(chip(method === m.id), "disabled:cursor-not-allowed disabled:opacity-50")}>{m.label}</button>)}
                   </div>
 
                   {method === "card" && (
@@ -395,6 +399,8 @@ export default function PaymentPage() {
                   )}
 
                   {method === "mobile" && <p className="rounded-xl bg-secondary p-3 text-sm text-muted-foreground">Ask the guest to tap or scan on the terminal, then confirm below.</p>}
+
+                  {!online && <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Offline: only cash payments can be taken. They sync when you reconnect.</p>}
 
                   {!shift && (
                     <div className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">

@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils"
 import { ROUTES } from "@/lib/routes"
 import { delay } from "@/lib/mock"
 import { ageOf, MIN_AGE } from "@/lib/age"
+import { useSync } from "@/components/sync/sync-provider"
 import { useOrders } from "@/components/orders/orders-provider"
 import { useInventory } from "@/components/inventory/inventory-provider"
 import { courseOf, coursesIn, COURSE_NAMES } from "@/lib/kitchen"
@@ -92,6 +93,7 @@ export default function NewOrderPage() {
 
   const { log } = useAudit()
   const { addOrder, nextOrderId } = useOrders()
+  const { online, enqueue } = useSync()
   const { stock, consume } = useInventory()
   const [fireAll, setFireAll] = useState(false)
   const stockOf = (item: { id: number; available: number }) => stock[item.id] ?? item.available
@@ -282,7 +284,7 @@ export default function NewOrderPage() {
     const newOrderNumber = nextOrderId()
     setOrderNumber(newOrderNumber)
     const courses = coursesIn(cart.map((c) => c.name))
-    addOrder({
+    const newOrder = {
       id: newOrderNumber,
       table: customerName,
       items: cart.reduce((n, c) => n + c.quantity, 0),
@@ -294,12 +296,14 @@ export default function NewOrderPage() {
       createdAt: Date.now(),
       fired: fireAll ? courses : [Math.min(...courses)],
       allergies: guestAllergies.length ? guestAllergies : undefined,
-    })
+    }
+    addOrder(newOrder)
+    enqueue("order", newOrderNumber, newOrder)
     consume(cart.map((c) => ({ id: c.id, name: c.name, qty: c.quantity })))
     setPlacing(false)
     setIsOrderPlaced(true)
     log({ category: "Order", action: `Order ${newOrderNumber} placed`, detail: `${customerName} · ${personCount} guests · $${total.toFixed(2)} · guest allergies: ${guestAllergies.join(", ") || "none"}${couponDiscount > 0 ? ` · coupon ${coupon?.code} -$${couponDiscount.toFixed(2)}` : ""}${cartConflicts.length ? ` · CONTAINS CONFLICTS: ${cartConflicts.map((c) => c.name).join(", ")}` : ""}`, flagged: cartConflicts.length > 0 || overrideCount > 0 })
-    notify({ title: `Order ${newOrderNumber} placed`, description: `${customerName} · $${total.toFixed(2)}`, href: ROUTES.orders })
+    notify({ title: `Order ${newOrderNumber} placed`, description: `${customerName} · $${total.toFixed(2)}${online ? "" : " · saved offline, will sync"}`, href: ROUTES.orders })
   }
 
   const pad = (n: number) => String(n).padStart(2, "0")

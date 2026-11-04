@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { delay } from "@/lib/mock"
 import { OrderMeta } from "@/components/orders/order-meta"
 import { useOrders } from "@/components/orders/orders-provider"
+import { useSync } from "@/components/sync/sync-provider"
 import { useShift } from "@/components/shift/shift-provider"
 import { useApproval } from "@/components/auth/approval-provider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -28,6 +29,7 @@ export default function OrdersPage() {
   const { toast, notify } = useNotifications()
   const { requestApproval } = useApproval()
   const { recordAdjustment } = useShift()
+  const { pendingIds } = useSync()
   const { log } = useAudit()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<typeof initialOrders[0] | null>(null)
@@ -158,6 +160,7 @@ export default function OrdersPage() {
                       <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusColor(order.status)}`}>
                         {order.status}
                       </span>
+                      {pendingIds.has(order.id) && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">Pending sync</span>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       {order.table} - {order.time} - {order.date}

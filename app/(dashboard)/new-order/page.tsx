@@ -23,6 +23,10 @@ import { cn } from "@/lib/utils"
 import { ROUTES } from "@/lib/routes"
 import { delay } from "@/lib/mock"
 import { ageOf, MIN_AGE } from "@/lib/age"
+import { useOrders } from "@/components/orders/orders-provider"
+import { useInventory } from "@/components/inventory/inventory-provider"
+import { courseOf, coursesIn, COURSE_NAMES } from "@/lib/kitchen"
+import { Switch } from "@/components/ui/switch"
 import { PageSearch } from "@/components/layout/page-search"
 import { AllergenBadges } from "@/components/menu/allergen-badges"
 import { useAudit } from "@/components/audit/audit-provider"
@@ -87,6 +91,10 @@ export default function NewOrderPage() {
   }, [])
 
   const { log } = useAudit()
+  const { addOrder, nextOrderId } = useOrders()
+  const { stock, consume } = useInventory()
+  const [fireAll, setFireAll] = useState(false)
+  const stockOf = (item: { id: number; available: number }) => stock[item.id] ?? item.available
   const [guestAllergies, setGuestAllergies] = useState<string[]>([])
   const [pending, setPending] = useState<{ item: typeof menuItems[0]; hit: string[] } | null>(null)
   const [overrideCount, setOverrideCount] = useState(0)
@@ -102,6 +110,7 @@ export default function NewOrderPage() {
   const [ageError, setAgeError] = useState("")
 
   const addToCart = (item: typeof menuItems[0]) => {
+    if (stockOf(item) - getCartQuantity(item.id) <= 0) { sonner.error(stockOf(item) <= 0 ? `${item.name} is sold out` : `Only ${stockOf(item)} ${item.name} left`); return }
     if (ageRestricted.has(item.name) && !ageVerified) { setDob(""); setAgeError(""); setAgeGate({ item }) }
     else addWithAllergenCheck(item)
   }
@@ -151,6 +160,8 @@ export default function NewOrderPage() {
   }
 
   const updateQuantity = (id: number, delta: number) => {
+    const m = menuItems.find((i) => i.id === id)
+    if (delta > 0 && m && getCartQuantity(id) >= stockOf(m)) { sonner.error(`Only ${stockOf(m)} ${m.name} left`); return }
     setCart((prev) =>
       prev
         .map((c) => (c.id === id ? { ...c, quantity: c.quantity + delta } : c))
@@ -268,8 +279,23 @@ export default function NewOrderPage() {
     if (!verified && cart.some((c) => ageRestricted.has(c.name))) { setDob(""); setAgeError(""); setAgeGate({ item: null }); return }
     setPlacing(true)
     await delay()
-    const newOrderNumber = `ORD-${Math.floor(Math.random() * 1000).toString().padStart(3, "0")}`
+    const newOrderNumber = nextOrderId()
     setOrderNumber(newOrderNumber)
+    const courses = coursesIn(cart.map((c) => c.name))
+    addOrder({
+      id: newOrderNumber,
+      table: customerName,
+      items: cart.reduce((n, c) => n + c.quantity, 0),
+      total: `$${(subtotal - couponDiscount).toFixed(2)}`,
+      status: "Preparing",
+      time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+      date: "Today",
+      details: cart.map((c) => ({ name: c.name, quantity: c.quantity, price: `$${(c.price * c.quantity).toFixed(2)}`, notes: [...(c.mods ?? []), c.notes].filter(Boolean).join(", ") || undefined })),
+      createdAt: Date.now(),
+      fired: fireAll ? courses : [Math.min(...courses)],
+      allergies: guestAllergies.length ? guestAllergies : undefined,
+    })
+    consume(cart.map((c) => ({ id: c.id, name: c.name, qty: c.quantity })))
     setPlacing(false)
     setIsOrderPlaced(true)
     log({ category: "Order", action: `Order ${newOrderNumber} placed`, detail: `${customerName} · ${personCount} guests · $${total.toFixed(2)} · guest allergies: ${guestAllergies.join(", ") || "none"}${couponDiscount > 0 ? ` · coupon ${coupon?.code} -$${couponDiscount.toFixed(2)}` : ""}${cartConflicts.length ? ` · CONTAINS CONFLICTS: ${cartConflicts.map((c) => c.name).join(", ")}` : ""}`, flagged: cartConflicts.length > 0 || overrideCount > 0 })
@@ -306,7 +332,7 @@ export default function NewOrderPage() {
                     <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-secondary">
                       <Image src={item.image} alt={item.name} fill className="object-cover" />
                       <span className="absolute bottom-2 left-2 bg-card/80 backdrop-blur-sm text-xs px-2 py-1 rounded-lg text-muted-foreground">
-                        Available: {item.available}
+                        Available: {stockOf(item)}
                       </span>
                     </div>
                     <h3 className="font-medium text-sm text-foreground">{item.name}{ageRestricted.has(item.name) && <span className="ml-1.5 rounded bg-foreground px-1 py-0.5 text-[10px] font-semibold text-background">18+</span>}</h3>
@@ -338,7 +364,7 @@ export default function NewOrderPage() {
                           </button>
                         </div>
                       ) : (
-                        <Button size="sm" variant="outline" className="h-7 text-xs rounded-full px-4" onClick={() => addToCart(item)}>
+                        <Button size="sm" variant="outline" className="h-7 text-xs rounded-full px-4" disabled={stockOf(item) <= 0} onClick={() => addToCart(item)}>
                           Order
                         </Button>
                       )}
@@ -379,7 +405,7 @@ export default function NewOrderPage() {
                     <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-secondary">
                       <Image src={item.image} alt={item.name} fill className="object-cover" />
                       <span className="absolute bottom-2 left-2 bg-card/80 backdrop-blur-sm text-xs px-2 py-1 rounded-lg text-muted-foreground">
-                        Available: {item.available}
+                        Available: {stockOf(item)}
                       </span>
                     </div>
                     <h3 className="font-medium text-sm text-foreground">{item.name}{ageRestricted.has(item.name) && <span className="ml-1.5 rounded bg-foreground px-1 py-0.5 text-[10px] font-semibold text-background">18+</span>}</h3>
@@ -404,7 +430,7 @@ export default function NewOrderPage() {
                           </button>
                         </div>
                       ) : (
-                        <Button size="sm" variant="outline" className="h-7 text-xs rounded-full px-4" onClick={() => addToCart(item)}>
+                        <Button size="sm" variant="outline" className="h-7 text-xs rounded-full px-4" disabled={stockOf(item) <= 0} onClick={() => addToCart(item)}>
                           Order
                         </Button>
                       )}
@@ -619,6 +645,15 @@ export default function NewOrderPage() {
                   <span style={{ color: "hsl(var(--success))" }}>${total.toFixed(2)}</span>
                 </div>
               </div>
+              {coursesIn(cart.map((c) => c.name)).length > 1 && (
+                <div className="mt-4 flex items-center justify-between rounded-xl bg-secondary px-3 py-2 text-sm">
+                  <span>
+                    Fire all courses now
+                    <span className="block text-xs text-muted-foreground">Otherwise only {COURSE_NAMES[Math.min(...cart.map((c) => courseOf(c.name)))].toLowerCase()} go first</span>
+                  </span>
+                  <Switch checked={fireAll} onCheckedChange={setFireAll} aria-label="Fire all courses now" />
+                </div>
+              )}
               <div className="mt-4 flex gap-2">
               <Button variant="outline" className="h-12 gap-1.5 rounded-xl" disabled={placing} onClick={holdOrder}>
                 <IconPlayerPause className="h-4 w-4" /> Hold
@@ -663,6 +698,7 @@ export default function NewOrderPage() {
               onClick={() => {
                 setCart([])
                 setOverrideCount(0)
+                setFireAll(false)
                 setAgeVerified(false)
                 setCoupon(null)
                 setIsOrderPlaced(false)

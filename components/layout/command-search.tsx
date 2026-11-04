@@ -7,6 +7,7 @@ import {
   IconCirclePlus,
   IconCreditCard,
   IconFileText,
+  IconChefHat,
   IconHistory,
   IconLayoutDashboard,
   IconReceipt,
@@ -19,13 +20,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Kbd } from "@/components/ui/kbd"
 import { Skeleton } from "@/components/ui/skeleton"
 import { initialMenuItems } from "@/lib/data/menu"
-import { initialOrders } from "@/lib/data/orders"
+import { useOrders } from "@/components/orders/orders-provider"
 import { ROUTES } from "@/lib/routes"
 
 const suggestions = [
   { label: "Start a new order", icon: IconCirclePlus, href: ROUTES.newOrder, hint: "N" },
   { label: "Add menu item", icon: IconToolsKitchen2, href: ROUTES.menu },
   { label: "Process a payment", icon: IconCreditCard, href: ROUTES.payment },
+  { label: "Open kitchen display", icon: IconChefHat, href: ROUTES.kitchen },
   { label: "View notifications", icon: IconBell, href: ROUTES.notifications },
   { label: "View audit log", icon: IconHistory, href: ROUTES.auditLog },
 ]
@@ -39,6 +41,7 @@ const pages = [
 
 export function CommandSearch() {
   const router = useRouter()
+  const { orders } = useOrders()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [term, setTerm] = useState("") // debounced query
@@ -68,10 +71,10 @@ export function CommandSearch() {
     const has = (...s: string[]) => s.some((x) => x.toLowerCase().includes(term))
     return {
       items: initialMenuItems.filter((i) => has(i.name, i.category, i.description)).slice(0, 5),
-      orders: initialOrders.filter((o) => has(o.id, o.table, o.status)).slice(0, 5),
+      orders: orders.filter((o) => has(o.id, o.table, o.status)).slice(0, 5),
       pages: [...pages, ...suggestions].filter((p) => has(p.label)).slice(0, 5),
     }
-  }, [term])
+  }, [term, orders])
 
   const go = (href: string) => {
     setOpen(false)

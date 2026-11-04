@@ -10,6 +10,8 @@ import { useNotifications } from "@/components/notifications/notifications-provi
 import { PosHeader } from "@/components/layout/pos-header"
 import { cn } from "@/lib/utils"
 import { delay } from "@/lib/mock"
+import { OrderMeta } from "@/components/orders/order-meta"
+import { useOrders } from "@/components/orders/orders-provider"
 import { useApproval } from "@/components/auth/approval-provider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -28,7 +30,7 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<typeof initialOrders[0] | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
-  const [orders, setOrders] = useState(initialOrders)
+  const { orders, setOrders } = useOrders()
   const [activeTab, setActiveTab] = useState("Active")
 
   const activeOrders = orders.filter((o) => ["Preparing", "Ready", "Served"].includes(o.status))
@@ -158,6 +160,7 @@ export default function OrdersPage() {
                       {order.table} - {order.time} - {order.date}
                     </p>
                     <p className="text-xs text-muted-foreground">{order.items} items - {order.total}</p>
+                    <OrderMeta order={order} />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

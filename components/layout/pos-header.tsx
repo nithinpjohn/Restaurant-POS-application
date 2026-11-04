@@ -23,6 +23,7 @@ const navLinks = [
   { href: ROUTES.dashboard, label: "Dashboard" },
   { href: ROUTES.newOrder, label: "New Order" },
   { href: ROUTES.orders, label: "Orders" },
+  { href: ROUTES.kitchen, label: "Kitchen" },
   { href: ROUTES.menu, label: "Menu" },
   { href: ROUTES.tables, label: "Tables" },
   { href: ROUTES.payment, label: "Payments" },

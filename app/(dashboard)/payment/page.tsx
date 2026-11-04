@@ -13,7 +13,9 @@ import { CashDrawerDialog } from "@/components/payment/cash-drawer-dialog"
 import { Receipt, type ReceiptData, type ReceiptPayment } from "@/components/payment/receipt"
 import { useAudit } from "@/components/audit/audit-provider"
 import { useNotifications } from "@/components/notifications/notifications-provider"
-import { initialOrders } from "@/lib/data/orders"
+import { useOrders } from "@/components/orders/orders-provider"
+import Link from "next/link"
+import { ROUTES } from "@/lib/routes"
 import { allocate, fmt, luhn, parseMoney, TAX_RATES, validExpiry } from "@/lib/money"
 import { delay } from "@/lib/mock"
 import { cn } from "@/lib/utils"
@@ -47,9 +49,11 @@ const card = "rounded-2xl border border-border bg-card p-5"
 export default function PaymentPage() {
   const { notify } = useNotifications()
   const { log } = useAudit()
+  const { orders, setOrders } = useOrders()
 
-  const openOrders = initialOrders.filter((o) => o.status !== "Completed")
-  const [orderId, setOrderId] = useState(openOrders[0].id)
+  const openOrders = orders.filter((o) => !o.paid && !["Completed", "Voided", "Refunded"].includes(o.status))
+  const [pickedId, setOrderId] = useState("")
+  const orderId = orders.some((o) => o.id === pickedId) ? pickedId : openOrders[0]?.id ?? ""
   const [tipPreset, setTipPreset] = useState<number | null>(null)
   const [customTip, setCustomTip] = useState("")
   const [poolTips, setPoolTips] = useState(false)
@@ -78,7 +82,19 @@ export default function PaymentPage() {
   const [emailing, setEmailing] = useState(false)
 
   // ---- money (integer cents) ----
-  const order = initialOrders.find((o) => o.id === orderId)!
+  const order = orders.find((o) => o.id === orderId)
+  if (!order) {
+    return (
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <PosHeader />
+        <main className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+          <h1 className="text-xl font-semibold text-foreground">No orders awaiting payment</h1>
+          <p className="text-sm text-muted-foreground">New orders show up here as soon as they are placed.</p>
+          <Link href={ROUTES.newOrder} className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Start a new order</Link>
+        </main>
+      </div>
+    )
+  }
   const items = order.details.map((d) => ({ name: d.name, qty: d.quantity, cents: parseMoney(d.price) }))
   const subtotal = parseMoney(order.total) // order total is treated as the pre-tax subtotal
   const taxLines = TAX_RATES.map((t) => ({ label: `${t.label} (${Math.round(t.rate * 100)}%)`, cents: Math.round(subtotal * t.rate) }))
@@ -138,6 +154,7 @@ export default function PaymentPage() {
     if (next.length === parts.length) {
       const earned = Math.floor(subtotal / 100)
       setPoints(points - loyalty + earned)
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, paid: true } : o)))
       setPaidAt(Date.now())
       if (tip > 0 && poolTips) log({ category: "Payment", action: "Tip pooled", detail: `${fmt(tip)} shared by ${staff} staff (${fmt(Math.floor(tip / staff))} each)` })
       log({ category: "Payment", action: "Order paid in full", detail: `${order.id} · ${fmt(payable)}${loyalty ? ` + ${loyalty} pts redeemed` : ""}` })
@@ -149,8 +166,7 @@ export default function PaymentPage() {
 
   const newPayment = () => {
     setPaid([]); setRedeem(""); setTipPreset(null); setCustomTip(""); setSplitMode("none"); setSeatOf({}); setPayerAmounts(["", ""]); setError(""); setEmail("")
-    const nextOpen = openOrders.find((o) => o.id !== orderId)
-    if (nextOpen) setOrderId(nextOpen.id)
+    setOrderId("")
   }
 
   const sendEmail = async () => {

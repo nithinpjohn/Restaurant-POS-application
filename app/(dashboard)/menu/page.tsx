@@ -23,6 +23,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { useNotifications } from "@/components/notifications/notifications-provider"
 import { delay } from "@/lib/mock"
+import { useInventory } from "@/components/inventory/inventory-provider"
+import { LOW_STOCK } from "@/lib/data/stock"
 import { useApproval } from "@/components/auth/approval-provider"
 import { PageSearch } from "@/components/layout/page-search"
 import { AllergenBadges } from "@/components/menu/allergen-badges"
@@ -35,6 +37,7 @@ const categories = ["All", "Appetizers", "Main Courses", "Desserts", "Drinks"]
 export default function MenuPage() {
   const { notify } = useNotifications()
   const { log } = useAudit()
+  const { stock, restock } = useInventory()
   const { requestApproval } = useApproval()
   const [menuItems, setMenuItems] = useState(initialMenuItems)
   const [loading, setLoading] = useState(true)
@@ -169,6 +172,12 @@ export default function MenuPage() {
               </div>
               <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{item.description}</p>
               <AllergenBadges allergens={item.allergens} className="mb-2" />
+              {stock[item.id] !== undefined && (
+                <p className={cn("mb-2 text-xs", stock[item.id] === 0 ? "font-medium text-red-600" : stock[item.id] <= LOW_STOCK ? "font-medium text-amber-600" : "text-muted-foreground")}>
+                  Stock: {stock[item.id]}{stock[item.id] === 0 ? " · Sold out" : stock[item.id] <= LOW_STOCK ? " · Low" : ""}
+                  <button className="ml-2 underline" onClick={() => restock(item.id, item.name, 10)}>+10</button>
+                </p>
+              )}
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground">${item.price.toFixed(2)}</span>
                 <div className="flex items-center gap-1.5">

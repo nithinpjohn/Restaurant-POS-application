@@ -9,4 +9,5 @@ export const ROUTES = {
   reports: "/reports",
   notifications: "/notifications",
   auditLog: "/audit-log",
+  kitchen: "/kitchen",
 } as const
